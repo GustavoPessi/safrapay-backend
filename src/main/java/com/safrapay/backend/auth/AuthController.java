@@ -1,5 +1,6 @@
 package com.safrapay.backend.auth;
 
+import com.safrapay.backend.auth.dto.AlterarSenhaRequest;
 import com.safrapay.backend.auth.dto.AuthResponse;
 import com.safrapay.backend.auth.dto.EsqueciSenhaRequest;
 import com.safrapay.backend.auth.dto.LoginRequest;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -48,5 +50,12 @@ public class AuthController {
     @PostMapping("/redefinir-senha")
     public ResponseEntity<MensagemResponse> redefinirSenha(@Valid @RequestBody RedefinirSenhaRequest request) {
         return ResponseEntity.ok(authService.redefinirSenha(request));
+    }
+
+    // Rota autenticada (exige JWT) - usada pela tela "Alterar senha" em
+    // Configuracoes, quando o usuario ja esta logado e sabe a senha atual.
+    @PutMapping("/alterar-senha")
+    public ResponseEntity<MensagemResponse> alterarSenha(@Valid @RequestBody AlterarSenhaRequest request) {
+        return ResponseEntity.ok(authService.alterarSenha(request));
     }
 }

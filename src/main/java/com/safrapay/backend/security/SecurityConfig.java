@@ -49,7 +49,18 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/status", "/actuator/**", "/api/auth/**", "/error").permitAll()
+                        .requestMatchers(
+                                "/api/status",
+                                "/actuator/**",
+                                "/api/auth/registrar",
+                                "/api/auth/login",
+                                "/api/auth/confirmar-email",
+                                "/api/auth/esqueci-senha",
+                                "/api/auth/redefinir-senha",
+                                "/error"
+                        ).permitAll()
+                        // /api/auth/alterar-senha fica de fora da lista acima de proposito:
+                        // exige usuario autenticado (JWT), pois so faz sentido pra quem ja esta logado.
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
