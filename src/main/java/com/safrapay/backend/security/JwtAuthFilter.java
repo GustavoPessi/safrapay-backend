@@ -26,7 +26,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final List<AntPathRequestMatcher> ROTAS_PUBLICAS = List.of(
             new AntPathRequestMatcher("/api/status"),
             new AntPathRequestMatcher("/actuator/**"),
-            new AntPathRequestMatcher("/api/auth/**")
+            new AntPathRequestMatcher("/api/auth/**"),
+            new AntPathRequestMatcher("/error")
     );
 
     private final JwtService jwtService;
