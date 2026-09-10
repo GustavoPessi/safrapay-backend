@@ -40,11 +40,15 @@ public class EmailService {
 
     public void enviarConfirmacaoEmail(String destinatario, String nome, String token) {
         String link = baseUrl + "/api/auth/confirmar-email?token=" + token;
-        String corpo = "<p>Ola, " + nome + "!</p>"
+        String corpoHtml = "<p>Ola, " + nome + "!</p>"
                 + "<p>Obrigado por se cadastrar no SafraPay. Clique no link abaixo para confirmar seu e-mail:</p>"
                 + "<p><a href=\"" + link + "\">" + link + "</a></p>"
                 + "<p>Se voce nao fez esse cadastro, pode ignorar esta mensagem.</p>";
-        enviar(destinatario, "Confirme seu cadastro no SafraPay", corpo);
+        String corpoTexto = "Ola, " + nome + "!\n\n"
+                + "Obrigado por se cadastrar no SafraPay. Acesse o link abaixo para confirmar seu e-mail:\n"
+                + link + "\n\n"
+                + "Se voce nao fez esse cadastro, pode ignorar esta mensagem.";
+        enviar(destinatario, "Confirme seu cadastro no SafraPay", corpoHtml, corpoTexto);
     }
 
     public void enviarRedefinicaoSenha(String destinatario, String nome, String token) {
@@ -53,15 +57,20 @@ public class EmailService {
         // de senha), entao por enquanto enviamos o codigo para o usuario
         // informar manualmente no app - troque por um link de verdade assim
         // que essa tela existir.
-        String corpo = "<p>Ola, " + nome + "!</p>"
+        String corpoHtml = "<p>Ola, " + nome + "!</p>"
                 + "<p>Recebemos um pedido para redefinir sua senha no SafraPay. "
                 + "Use o codigo abaixo no app, na tela de redefinir senha (valido por 1 hora):</p>"
                 + "<p style=\"font-size:18px;font-weight:bold;\">" + token + "</p>"
                 + "<p>Se voce nao pediu isso, pode ignorar esta mensagem - sua senha atual continua valendo.</p>";
-        enviar(destinatario, "Redefinicao de senha - SafraPay", corpo);
+        String corpoTexto = "Ola, " + nome + "!\n\n"
+                + "Recebemos um pedido para redefinir sua senha no SafraPay. "
+                + "Use o codigo abaixo no app, na tela de redefinir senha (valido por 1 hora):\n\n"
+                + token + "\n\n"
+                + "Se voce nao pediu isso, pode ignorar esta mensagem - sua senha atual continua valendo.";
+        enviar(destinatario, "Redefinicao de senha - SafraPay", corpoHtml, corpoTexto);
     }
 
-    private void enviar(String destinatario, String assunto, String corpoHtml) {
+    private void enviar(String destinatario, String assunto, String corpoHtml, String corpoTexto) {
         try {
             SendEmailRequest request = SendEmailRequest.builder()
                     .source(remetente)
@@ -69,7 +78,10 @@ public class EmailService {
                     .message(Message.builder()
                             .subject(Content.builder().data(assunto).charset("UTF-8").build())
                             .body(Body.builder()
+                                    // Mandar tambem uma versao em texto simples (alem do HTML) ajuda
+                                    // na pontuacao anti-spam dos provedores de e-mail.
                                     .html(Content.builder().data(corpoHtml).charset("UTF-8").build())
+                                    .text(Content.builder().data(corpoTexto).charset("UTF-8").build())
                                     .build())
                             .build())
                     .build();
