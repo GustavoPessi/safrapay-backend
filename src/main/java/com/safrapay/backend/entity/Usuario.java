@@ -30,4 +30,7 @@ public class Usuario extends BaseSyncEntity {
     private String telefone;
 
     private LocalDate nascimento;
+
+    @Column(name = "email_verificado", nullable = false)
+    private boolean emailVerificado = false;
 }

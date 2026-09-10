@@ -1,19 +1,26 @@
 package com.safrapay.backend.auth;
 
 import com.safrapay.backend.auth.dto.AuthResponse;
+import com.safrapay.backend.auth.dto.EsqueciSenhaRequest;
 import com.safrapay.backend.auth.dto.LoginRequest;
+import com.safrapay.backend.auth.dto.MensagemResponse;
+import com.safrapay.backend.auth.dto.RedefinirSenhaRequest;
 import com.safrapay.backend.auth.dto.RegisterRequest;
+import com.safrapay.backend.email.EmailService;
+import com.safrapay.backend.entity.TipoToken;
 import com.safrapay.backend.entity.Usuario;
 import com.safrapay.backend.repository.UsuarioRepository;
 import com.safrapay.backend.security.JwtService;
 import com.safrapay.backend.security.UsuarioDetailsImpl;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
+
+import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -22,18 +29,24 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final TokenService tokenService;
+    private final EmailService emailService;
 
     public AuthService(UsuarioRepository usuarioRepository,
                         PasswordEncoder passwordEncoder,
                         JwtService jwtService,
-                        AuthenticationManager authenticationManager) {
+                        AuthenticationManager authenticationManager,
+                        TokenService tokenService,
+                        EmailService emailService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.tokenService = tokenService;
+        this.emailService = emailService;
     }
 
-    public AuthResponse registrar(RegisterRequest request) {
+    public MensagemResponse registrar(RegisterRequest request) {
         if (usuarioRepository.existsByEmail(request.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ja existe um usuario com esse email");
         }
@@ -44,13 +57,14 @@ public class AuthService {
         usuario.setSenhaHash(passwordEncoder.encode(request.getSenha()));
         usuario.setCpf(request.getCpf());
         usuario.setTelefone(request.getTelefone());
+        usuario.setEmailVerificado(false);
 
         usuarioRepository.save(usuario);
 
-        UsuarioDetailsImpl userDetails = new UsuarioDetailsImpl(usuario);
-        String token = jwtService.gerarToken(userDetails);
+        String token = tokenService.gerarTokenConfirmacaoEmail(usuario);
+        emailService.enviarConfirmacaoEmail(usuario.getEmail(), usuario.getNome(), token);
 
-        return new AuthResponse(token, usuario.getNome(), usuario.getEmail());
+        return new MensagemResponse("Cadastro realizado. Verifique seu e-mail para confirmar a conta antes de fazer login.");
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -69,9 +83,38 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciais invalidas"));
 
+        if (!usuario.isEmailVerificado()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Confirme seu e-mail antes de fazer login");
+        }
+
         UsuarioDetailsImpl userDetails = new UsuarioDetailsImpl(usuario);
         String token = jwtService.gerarToken(userDetails);
 
         return new AuthResponse(token, usuario.getNome(), usuario.getEmail());
+    }
+
+    public MensagemResponse confirmarEmail(String token) {
+        Usuario usuario = tokenService.consumirToken(token, TipoToken.CONFIRMACAO_EMAIL);
+        usuario.setEmailVerificado(true);
+        usuarioRepository.save(usuario);
+        return new MensagemResponse("E-mail confirmado com sucesso. Voce ja pode fazer login.");
+    }
+
+    public MensagemResponse esqueciSenha(EsqueciSenhaRequest request) {
+        // Sempre devolvemos a mesma mensagem, exista ou nao o e-mail, para nao
+        // deixar alguem descobrir quais e-mails estao cadastrados (enumeration).
+        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(request.getEmail());
+        usuarioOpt.ifPresent(usuario -> {
+            String token = tokenService.gerarTokenResetSenha(usuario);
+            emailService.enviarRedefinicaoSenha(usuario.getEmail(), usuario.getNome(), token);
+        });
+        return new MensagemResponse("Se o e-mail existir na nossa base, voce vai receber um link de redefinicao de senha.");
+    }
+
+    public MensagemResponse redefinirSenha(RedefinirSenhaRequest request) {
+        Usuario usuario = tokenService.consumirToken(request.getToken(), TipoToken.RESET_SENHA);
+        usuario.setSenhaHash(passwordEncoder.encode(request.getNovaSenha()));
+        usuarioRepository.save(usuario);
+        return new MensagemResponse("Senha redefinida com sucesso.");
     }
 }
