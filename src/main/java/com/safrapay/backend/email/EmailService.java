@@ -52,20 +52,24 @@ public class EmailService {
     }
 
     public void enviarRedefinicaoSenha(String destinatario, String nome, String token) {
-        // Ainda nao existe uma tela web/app publica que receba o token direto
-        // por link (isso fica pronto quando o app tiver a tela de redefinicao
-        // de senha), entao por enquanto enviamos o codigo para o usuario
-        // informar manualmente no app - troque por um link de verdade assim
-        // que essa tela existir.
+        // Link pra uma pagina web publica servida pelo proprio backend
+        // (src/main/resources/static/redefinir-senha.html), que recebe o
+        // token e chama /api/auth/redefinir-senha. Escolhido no lugar de um
+        // deep link pro app porque funciona em qualquer dispositivo/cliente
+        // de e-mail, sem depender do app estar instalado onde a pessoa abriu
+        // a mensagem. Quando houver dominio + HTTPS, essa mesma URL vira a
+        // base de um Android App Link (abre o app se instalado, cai nessa
+        // pagina como fallback caso contrario).
+        String link = baseUrl + "/redefinir-senha.html?token=" + token;
         String corpoHtml = "<p>Ola, " + nome + "!</p>"
                 + "<p>Recebemos um pedido para redefinir sua senha no SafraPay. "
-                + "Use o codigo abaixo no app, na tela de redefinir senha (valido por 1 hora):</p>"
-                + "<p style=\"font-size:18px;font-weight:bold;\">" + token + "</p>"
+                + "Clique no link abaixo para escolher uma nova senha (valido por 1 hora):</p>"
+                + "<p><a href=\"" + link + "\">" + link + "</a></p>"
                 + "<p>Se voce nao pediu isso, pode ignorar esta mensagem - sua senha atual continua valendo.</p>";
         String corpoTexto = "Ola, " + nome + "!\n\n"
                 + "Recebemos um pedido para redefinir sua senha no SafraPay. "
-                + "Use o codigo abaixo no app, na tela de redefinir senha (valido por 1 hora):\n\n"
-                + token + "\n\n"
+                + "Acesse o link abaixo para escolher uma nova senha (valido por 1 hora):\n\n"
+                + link + "\n\n"
                 + "Se voce nao pediu isso, pode ignorar esta mensagem - sua senha atual continua valendo.";
         enviar(destinatario, "Redefinicao de senha - SafraPay", corpoHtml, corpoTexto);
     }

@@ -57,6 +57,7 @@ public class SecurityConfig {
                                 "/api/auth/confirmar-email",
                                 "/api/auth/esqueci-senha",
                                 "/api/auth/redefinir-senha",
+                                "/redefinir-senha.html",
                                 "/error"
                         ).permitAll()
                         // /api/auth/alterar-senha fica de fora da lista acima de proposito:
