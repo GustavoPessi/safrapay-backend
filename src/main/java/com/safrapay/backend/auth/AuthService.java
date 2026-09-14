@@ -59,6 +59,13 @@ public class AuthService {
         usuario.setSenhaHash(passwordEncoder.encode(request.getSenha()));
         usuario.setCpf(request.getCpf());
         usuario.setTelefone(request.getTelefone());
+        if (request.getNascimento() != null && !request.getNascimento().isBlank()) {
+            try {
+                usuario.setNascimento(java.time.LocalDate.parse(request.getNascimento()));
+            } catch (java.time.format.DateTimeParseException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Data de nascimento invalida");
+            }
+        }
         usuario.setEmailVerificado(false);
 
         usuarioRepository.save(usuario);
@@ -92,7 +99,13 @@ public class AuthService {
         UsuarioDetailsImpl userDetails = new UsuarioDetailsImpl(usuario);
         String token = jwtService.gerarToken(userDetails);
 
-        return new AuthResponse(token, usuario.getNome(), usuario.getEmail());
+        return new AuthResponse(
+                token,
+                usuario.getNome(),
+                usuario.getEmail(),
+                usuario.getCpf(),
+                usuario.getTelefone(),
+                usuario.getNascimento() == null ? null : usuario.getNascimento().toString());
     }
 
     public MensagemResponse confirmarEmail(String token) {

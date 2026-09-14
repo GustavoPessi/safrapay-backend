@@ -21,6 +21,9 @@ public class RegisterRequest {
 
     private String telefone;
 
+    /** Formato ISO (yyyy-MM-dd), opcional. */
+    private String nascimento;
+
     public String getNome() {
         return nome;
     }
@@ -59,5 +62,13 @@ public class RegisterRequest {
 
     public void setTelefone(String telefone) {
         this.telefone = telefone;
+    }
+
+    public String getNascimento() {
+        return nascimento;
+    }
+
+    public void setNascimento(String nascimento) {
+        this.nascimento = nascimento;
     }
 }
