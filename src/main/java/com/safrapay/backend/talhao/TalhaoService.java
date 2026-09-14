@@ -12,6 +12,7 @@ import com.safrapay.backend.talhao.dto.TalhaoSyncRequest;
 import com.safrapay.backend.talhao.dto.TalhaoSyncResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -86,8 +87,18 @@ public class TalhaoService {
     // propriedade-mae ainda nao chegou no servidor, o item e ignorado nesta
     // passada - regra: propriedade sincroniza sempre antes de talhao, e o
     // app tenta de novo no proximo "Sincronizar".
+    //
+    // @Transactional aqui e necessario: TalhaoSyncResponse.de() le
+    // t.getPropriedade().getUuid() (nao so o id - que vem "de graca" no proxy
+    // sem tocar o banco). O uuid exige inicializar o proxy lazy de verdade, e
+    // com spring.jpa.open-in-view=false a sessao do Hibernate fecha assim que
+    // o metodo do repositorio retorna. Sem a transacao abrangendo o metodo
+    // inteiro, isso estoura LazyInitializationException e a chamada cai como
+    // erro 500 (foi o bug que causou "Falha ao buscar talhoes do servidor" -
+    // corrigido em 14/09/2026).
     // ----------------------------------------------------------------------
 
+    @Transactional
     public List<TalhaoSyncResponse> sincronizarPush(List<TalhaoSyncRequest> itens) {
         Usuario usuario = SecurityUtils.usuarioLogado();
         List<TalhaoSyncResponse> respostas = new ArrayList<>();
@@ -125,6 +136,7 @@ public class TalhaoService {
         return respostas;
     }
 
+    @Transactional(readOnly = true)
     public List<TalhaoSyncResponse> sincronizarPull(String desde) {
         Usuario usuario = SecurityUtils.usuarioLogado();
         List<Talhao> lista;
