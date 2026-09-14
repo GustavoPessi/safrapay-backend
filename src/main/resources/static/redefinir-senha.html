@@ -4,24 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Redefinir senha — SafraPay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --primary: #2E7D32;
-    --primary-dark: #245f27;
+    --primary-dark: #1B5E20;
     --bg: #F4F7F2;
     --card: #FFFFFF;
-    --text: #1B1B1B;
-    --muted: #5C6B5D;
-    --error: #B3261E;
-    --border: #DDE4DA;
+    --text: #1A241C;
+    --muted: #68766C;
+    --border: #E3EAE2;
+    --error: #E24C4C;
+    --green-50: #E8F5E9;
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     margin: 0;
-    min-height: 100vh;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -29,166 +33,227 @@
   }
   .card {
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
     background: var(--card);
-    border-radius: 16px;
-    padding: 32px 28px;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(27, 94, 32, 0.10);
+    border: 1px solid var(--border);
   }
-  .logo {
+  .header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    padding: 28px 28px 24px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 24px;
+    gap: 10px;
   }
-  .logo-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--primary);
-    flex-shrink: 0;
+  .header .leaf { font-size: 26px; line-height: 1; }
+  .header .brand {
+    color: #fff; font-weight: 700; font-size: 20px; letter-spacing: -0.02em;
   }
-  .logo-text {
-    font-weight: 700;
-    font-size: 18px;
-    letter-spacing: -0.02em;
-  }
-  h1 {
-    font-size: 20px;
-    margin: 0 0 6px;
-  }
-  p.subtitle {
-    color: var(--muted);
-    font-size: 14px;
-    margin: 0 0 24px;
-    line-height: 1.5;
-  }
-  label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: var(--text);
-  }
-  input[type="password"] {
+  .body { padding: 30px 28px 34px; }
+  h1 { font-size: 21px; font-weight: 700; margin: 0 0 6px; }
+  p.subtitle { color: var(--muted); font-size: 15px; margin: 0 0 24px; line-height: 1.55; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .field { margin-bottom: 16px; }
+  .input-wrap { position: relative; }
+  input[type="password"], input[type="text"] {
     width: 100%;
-    padding: 12px 14px;
+    padding: 13px 46px 13px 14px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 15px;
-    margin-bottom: 16px;
+    font-family: inherit;
     background: var(--bg);
     color: var(--text);
   }
-  input[type="password"]:focus {
-    outline: none;
-    border-color: var(--primary);
+  input:focus { outline: none; border-color: var(--primary); background: #fff; }
+  input.invalid { border-color: var(--error); }
+  .toggle {
+    position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+    background: none; border: none; padding: 6px; cursor: pointer;
+    color: var(--muted); display: flex; width: auto;
   }
-  button {
-    width: 100%;
-    padding: 13px;
-    border: none;
-    border-radius: 10px;
-    background: var(--primary);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 4px;
+  .toggle svg { width: 20px; height: 20px; }
+  .rule {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12.5px; color: var(--muted); margin: 8px 2px 0;
   }
-  button:hover { background: var(--primary-dark); }
-  button:disabled { opacity: 0.6; cursor: default; }
-  .msg {
-    margin-top: 16px;
-    font-size: 14px;
-    line-height: 1.5;
-    border-radius: 10px;
-    padding: 12px 14px;
-    display: none;
+  .rule .dot {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: background .15s, border-color .15s;
   }
+  .rule .dot svg { width: 9px; height: 9px; opacity: 0; }
+  .rule.ok { color: var(--primary-dark); }
+  .rule.ok .dot { background: var(--primary); border-color: var(--primary); }
+  .rule.ok .dot svg { opacity: 1; }
+  .field-error { color: var(--error); font-size: 12.5px; margin: 6px 2px 0; display: none; }
+  .field-error.show { display: block; }
+  button.submit {
+    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    background: var(--primary); color: #fff; font-size: 15px; font-weight: 600;
+    font-family: inherit; cursor: pointer; margin-top: 8px;
+  }
+  button.submit:hover { background: var(--primary-dark); }
+  button.submit:disabled { opacity: 0.6; cursor: default; }
+  .msg { margin-top: 16px; font-size: 14px; line-height: 1.5; border-radius: 12px; padding: 12px 14px; display: none; }
   .msg.show { display: block; }
-  .msg.success { background: #E8F3E8; color: var(--primary-dark); }
-  .msg.error { background: #FBEAE9; color: var(--error); }
-  .hint {
-    font-size: 12px;
-    color: var(--muted);
-    margin: -10px 0 16px;
-  }
-  .state-hidden { display: none; }
+  .msg.error { background: #FCEDED; color: var(--error); }
+  /* estados de sucesso / token inválido (só feedback, sem form) */
+  .feedback { text-align: center; }
+  .icon-wrap { width: 72px; height: 72px; border-radius: 50%; margin: 6px auto 0; display: flex; align-items: center; justify-content: center; }
+  .icon-wrap.success { background: var(--green-50); }
+  .icon-wrap.error { background: #FCEDED; }
+  .icon-wrap svg { width: 38px; height: 38px; }
+  .feedback h1 { margin-top: 16px; }
+  .feedback p { color: var(--muted); font-size: 15px; line-height: 1.55; margin: 8px auto 0; max-width: 320px; }
+  .state { display: none; }
+  .state.show { display: block; }
 </style>
 </head>
 <body>
   <div class="card">
-    <div class="logo">
-      <span class="logo-dot"></span>
-      <span class="logo-text">SafraPay</span>
+    <div class="header">
+      <span class="leaf">🌱</span>
+      <span class="brand">SafraPay</span>
     </div>
+    <div class="body">
 
-    <div id="formState">
-      <h1>Criar nova senha</h1>
-      <p class="subtitle">Escolha uma nova senha para sua conta.</p>
+      <!-- Formulário -->
+      <div id="stForm" class="state show">
+        <h1>Criar nova senha</h1>
+        <p class="subtitle">Escolha uma nova senha para sua conta SafraPay.</p>
 
-      <form id="resetForm">
-        <label for="novaSenha">Nova senha</label>
-        <input type="password" id="novaSenha" name="novaSenha" minlength="6" required autocomplete="new-password">
-        <p class="hint">Mínimo de 6 caracteres.</p>
+        <form id="resetForm" novalidate>
+          <div class="field">
+            <label for="novaSenha">Nova senha</label>
+            <div class="input-wrap">
+              <input type="password" id="novaSenha" autocomplete="new-password">
+              <button type="button" class="toggle" data-target="novaSenha" aria-label="Mostrar senha"></button>
+            </div>
+            <div class="rule" id="rule6">
+              <span class="dot">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span>Mínimo de 6 caracteres</span>
+            </div>
+          </div>
 
-        <label for="confirmarSenha">Confirmar nova senha</label>
-        <input type="password" id="confirmarSenha" name="confirmarSenha" minlength="6" required autocomplete="new-password">
+          <div class="field">
+            <label for="confirmarSenha">Confirmar nova senha</label>
+            <div class="input-wrap">
+              <input type="password" id="confirmarSenha" autocomplete="new-password">
+              <button type="button" class="toggle" data-target="confirmarSenha" aria-label="Mostrar senha"></button>
+            </div>
+            <div class="field-error" id="errConfirmar">As senhas não coincidem.</div>
+          </div>
 
-        <button type="submit" id="btnSubmit">Redefinir senha</button>
-      </form>
+          <button type="submit" class="submit" id="btnSubmit">Redefinir senha</button>
+        </form>
 
-      <div id="msg" class="msg"></div>
-    </div>
+        <div id="msg" class="msg"></div>
+      </div>
 
-    <div id="noTokenState" class="state-hidden">
-      <h1>Link inválido</h1>
-      <p class="subtitle">Este link de redefinição de senha está incompleto ou inválido. Solicite um novo link pela tela "Esqueci minha senha" no app.</p>
+      <!-- Sucesso -->
+      <div id="stSuccess" class="state feedback">
+        <div class="icon-wrap success">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#2E7D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h1>Senha redefinida!</h1>
+        <p>Tudo certo. Volte ao app SafraPay e faça login com a sua nova senha.</p>
+      </div>
+
+      <!-- Token inválido / ausente -->
+      <div id="stInvalid" class="state feedback">
+        <div class="icon-wrap error">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#E24C4C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h1>Link inválido</h1>
+        <p>Este link de redefinição está incompleto ou expirou. Peça um novo pela tela "Esqueci minha senha" no app.</p>
+      </div>
+
     </div>
   </div>
 
   <script>
-    function getToken() {
-      var params = new URLSearchParams(window.location.search);
-      return params.get('token');
-    }
+    (function () {
+      var states = {
+        form: document.getElementById('stForm'),
+        success: document.getElementById('stSuccess'),
+        invalid: document.getElementById('stInvalid')
+      };
+      function mostrar(nome) {
+        Object.keys(states).forEach(function (k) { states[k].classList.toggle('show', k === nome); });
+      }
 
-    var token = getToken();
-    var formState = document.getElementById('formState');
-    var noTokenState = document.getElementById('noTokenState');
-    var form = document.getElementById('resetForm');
-    var msgEl = document.getElementById('msg');
-    var btn = document.getElementById('btnSubmit');
+      var token = new URLSearchParams(window.location.search).get('token');
+      if (!token) { mostrar('invalid'); return; }
 
-    if (!token) {
-      formState.classList.add('state-hidden');
-      noTokenState.classList.remove('state-hidden');
-    } else {
+      var form = document.getElementById('resetForm');
+      var nova = document.getElementById('novaSenha');
+      var conf = document.getElementById('confirmarSenha');
+      var rule6 = document.getElementById('rule6');
+      var errConfirmar = document.getElementById('errConfirmar');
+      var msg = document.getElementById('msg');
+      var btn = document.getElementById('btnSubmit');
+
+      // Ícone (olho) dos botões mostrar/ocultar
+      var eye = '<svg viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>';
+      var eyeOff = '<svg viewBox="0 0 24 24" fill="none"><path d="M3 3l18 18M10.6 10.6A3 3 0 0014 14M6.7 6.7C3.9 8.3 2 12 2 12s3.5 7 10 7c2 0 3.8-.6 5.3-1.5M9.9 5.2A9.7 9.7 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-2.2 3.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      document.querySelectorAll('.toggle').forEach(function (t) {
+        t.innerHTML = eye;
+        t.addEventListener('click', function () {
+          var el = document.getElementById(t.getAttribute('data-target'));
+          var show = el.type === 'password';
+          el.type = show ? 'text' : 'password';
+          t.innerHTML = show ? eyeOff : eye;
+          t.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+        });
+      });
+
+      // Indicador da regra de 6 caracteres (acende em verde)
+      nova.addEventListener('input', function () {
+        rule6.classList.toggle('ok', nova.value.length >= 6);
+      });
+      conf.addEventListener('input', function () {
+        errConfirmar.classList.remove('show');
+        conf.classList.remove('invalid');
+      });
+
+      function erroMsg(texto) {
+        msg.textContent = texto;
+        msg.className = 'msg show error';
+      }
+      function limparMsg() { msg.className = 'msg'; msg.textContent = ''; }
+
       form.addEventListener('submit', function (ev) {
         ev.preventDefault();
+        limparMsg();
+        errConfirmar.classList.remove('show');
+        nova.classList.remove('invalid');
+        conf.classList.remove('invalid');
 
-        var novaSenha = document.getElementById('novaSenha').value;
-        var confirmarSenha = document.getElementById('confirmarSenha').value;
-
-        showMsg('', null);
-
-        if (novaSenha.length < 6) {
-          showMsg('A senha precisa ter no mínimo 6 caracteres.', 'error');
+        if (nova.value.length < 6) {
+          nova.classList.add('invalid');
+          rule6.classList.remove('ok');
+          nova.focus();
           return;
         }
-        if (novaSenha !== confirmarSenha) {
-          showMsg('As senhas não coincidem.', 'error');
+        if (nova.value !== conf.value) {
+          conf.classList.add('invalid');
+          errConfirmar.classList.add('show');
+          conf.focus();
           return;
         }
 
         btn.disabled = true;
-        btn.textContent = 'Redefinindo...';
+        btn.textContent = 'Salvando…';
 
         fetch('/api/auth/redefinir-senha', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: token, novaSenha: novaSenha })
+          body: JSON.stringify({ token: token, novaSenha: nova.value })
         })
           .then(function (res) {
             return res.json().catch(function () { return {}; }).then(function (body) {
@@ -197,33 +262,22 @@
           })
           .then(function (result) {
             if (result.ok) {
-              form.classList.add('state-hidden');
-              showMsg('Senha redefinida com sucesso! Você já pode voltar ao app SafraPay e fazer login com a nova senha.', 'success');
+              mostrar('success');
             } else {
               var texto = (result.body && (result.body.message || result.body.mensagem))
                 || 'Não foi possível redefinir a senha. O link pode ter expirado ou já ter sido usado — solicite um novo pelo app.';
-              showMsg(texto, 'error');
+              erroMsg(texto);
               btn.disabled = false;
               btn.textContent = 'Redefinir senha';
             }
           })
           .catch(function () {
-            showMsg('Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.', 'error');
+            erroMsg('Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.');
             btn.disabled = false;
             btn.textContent = 'Redefinir senha';
           });
       });
-    }
-
-    function showMsg(texto, tipo) {
-      if (!texto) {
-        msgEl.className = 'msg';
-        msgEl.textContent = '';
-        return;
-      }
-      msgEl.textContent = texto;
-      msgEl.className = 'msg show ' + tipo;
-    }
+    })();
   </script>
 </body>
 </html>

@@ -31,6 +31,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             new AntPathRequestMatcher("/api/auth/confirmar-email"),
             new AntPathRequestMatcher("/api/auth/esqueci-senha"),
             new AntPathRequestMatcher("/api/auth/redefinir-senha"),
+            new AntPathRequestMatcher("/redefinir-senha.html"),
+            new AntPathRequestMatcher("/confirmar-email.html"),
             new AntPathRequestMatcher("/error")
             // /api/auth/alterar-senha NAO entra aqui de proposito: precisa que
             // este filtro tente ler e validar o JWT normalmente.

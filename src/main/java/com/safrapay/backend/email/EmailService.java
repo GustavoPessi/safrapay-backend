@@ -39,7 +39,10 @@ public class EmailService {
     }
 
     public void enviarConfirmacaoEmail(String destinatario, String nome, String token) {
-        String link = baseUrl + "/api/auth/confirmar-email?token=" + token;
+        // Aponta para a pagina web amigavel (src/main/resources/static/confirmar-email.html),
+        // que le o token da URL e chama GET /api/auth/confirmar-email por dentro (same-origin).
+        // Antes o link ia direto pro endpoint da API, que devolvia JSON cru no navegador.
+        String link = baseUrl + "/confirmar-email.html?token=" + token;
         String corpoHtml = "<p>Ola, " + nome + "!</p>"
                 + "<p>Obrigado por se cadastrar no SafraPay. Clique no link abaixo para confirmar seu e-mail:</p>"
                 + "<p><a href=\"" + link + "\">" + link + "</a></p>"
