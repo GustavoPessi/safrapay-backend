@@ -2,6 +2,8 @@ package com.safrapay.backend.propriedade;
 
 import com.safrapay.backend.propriedade.dto.PropriedadeRequest;
 import com.safrapay.backend.propriedade.dto.PropriedadeResponse;
+import com.safrapay.backend.propriedade.dto.PropriedadeSyncRequest;
+import com.safrapay.backend.propriedade.dto.PropriedadeSyncResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +44,17 @@ public class PropriedadeController {
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- Sincronizacao (offline-first) ---
+
+    @PostMapping("/sync")
+    public List<PropriedadeSyncResponse> sincronizarPush(@RequestBody List<PropriedadeSyncRequest> itens) {
+        return service.sincronizarPush(itens);
+    }
+
+    @GetMapping("/sync")
+    public List<PropriedadeSyncResponse> sincronizarPull(@RequestParam(required = false) String desde) {
+        return service.sincronizarPull(desde);
     }
 }

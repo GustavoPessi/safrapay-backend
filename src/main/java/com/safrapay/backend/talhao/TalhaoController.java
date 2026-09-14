@@ -2,6 +2,8 @@ package com.safrapay.backend.talhao;
 
 import com.safrapay.backend.talhao.dto.TalhaoRequest;
 import com.safrapay.backend.talhao.dto.TalhaoResponse;
+import com.safrapay.backend.talhao.dto.TalhaoSyncRequest;
+import com.safrapay.backend.talhao.dto.TalhaoSyncResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +44,17 @@ public class TalhaoController {
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- Sincronizacao (offline-first) ---
+
+    @PostMapping("/sync")
+    public List<TalhaoSyncResponse> sincronizarPush(@RequestBody List<TalhaoSyncRequest> itens) {
+        return service.sincronizarPush(itens);
+    }
+
+    @GetMapping("/sync")
+    public List<TalhaoSyncResponse> sincronizarPull(@RequestParam(required = false) String desde) {
+        return service.sincronizarPull(desde);
     }
 }

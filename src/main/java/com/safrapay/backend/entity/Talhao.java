@@ -26,4 +26,9 @@ public class Talhao extends BaseSyncEntity {
 
     @Column(name = "area_ha")
     private Double areaHa;
+
+    // Cultura do talhao (ex.: Soja) - espelha o campo local do app, adicionado
+    // para a sincronizacao (14/09/2026); coluna criada automaticamente pelo
+    // ddl-auto=update no proximo deploy.
+    private String cultura;
 }

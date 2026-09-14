@@ -2,14 +2,20 @@ package com.safrapay.backend.talhao;
 
 import com.safrapay.backend.entity.Propriedade;
 import com.safrapay.backend.entity.Talhao;
+import com.safrapay.backend.entity.Usuario;
 import com.safrapay.backend.propriedade.PropriedadeService;
 import com.safrapay.backend.repository.TalhaoRepository;
+import com.safrapay.backend.security.SecurityUtils;
 import com.safrapay.backend.talhao.dto.TalhaoRequest;
 import com.safrapay.backend.talhao.dto.TalhaoResponse;
+import com.safrapay.backend.talhao.dto.TalhaoSyncRequest;
+import com.safrapay.backend.talhao.dto.TalhaoSyncResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -70,5 +76,76 @@ public class TalhaoService {
     private void aplicar(Talhao t, TalhaoRequest request) {
         t.setNome(request.getNome());
         t.setAreaHa(request.getAreaHa());
+    }
+
+    // ----------------------------------------------------------------------
+    // Sincronizacao (push/pull). Segue o mesmo padrao de PropriedadeService,
+    // com uma diferenca: a relacao com a propriedade-mae viaja como
+    // "propriedadeUuid" (nunca um id local do celular ou do servidor), e e
+    // resolvida aqui via PropriedadeService.buscarEntidadePorUuid. Se a
+    // propriedade-mae ainda nao chegou no servidor, o item e ignorado nesta
+    // passada - regra: propriedade sincroniza sempre antes de talhao, e o
+    // app tenta de novo no proximo "Sincronizar".
+    // ----------------------------------------------------------------------
+
+    public List<TalhaoSyncResponse> sincronizarPush(List<TalhaoSyncRequest> itens) {
+        Usuario usuario = SecurityUtils.usuarioLogado();
+        List<TalhaoSyncResponse> respostas = new ArrayList<>();
+        if (itens == null) return respostas;
+
+        for (TalhaoSyncRequest item : itens) {
+            if (item.getUuid() == null || item.getPropriedadeUuid() == null
+                    || item.getNome() == null || item.getNome().isBlank()) continue;
+
+            Instant atualizadoCliente;
+            try {
+                atualizadoCliente = Instant.parse(item.getAtualizadoEm());
+            } catch (Exception e) {
+                continue;
+            }
+
+            Propriedade propriedade = propriedadeService.buscarEntidadePorUuid(item.getPropriedadeUuid());
+            if (propriedade == null) {
+                continue; // propriedade-mae ainda nao sincronizou - tenta de novo depois
+            }
+
+            Talhao t = talhaoRepository.findByUuidAndPropriedade_Usuario_Id(item.getUuid(), usuario.getId()).orElse(null);
+            if (t == null) {
+                t = new Talhao();
+                t.setUuid(item.getUuid());
+                t.setPropriedade(propriedade);
+                aplicarSync(t, item, propriedade);
+                talhaoRepository.save(t);
+            } else if (atualizadoCliente.isAfter(t.getAtualizadoEm())) {
+                aplicarSync(t, item, propriedade);
+                talhaoRepository.save(t);
+            }
+            respostas.add(TalhaoSyncResponse.de(t));
+        }
+        return respostas;
+    }
+
+    public List<TalhaoSyncResponse> sincronizarPull(String desde) {
+        Usuario usuario = SecurityUtils.usuarioLogado();
+        List<Talhao> lista;
+        if (desde == null || desde.isBlank()) {
+            lista = talhaoRepository.findByPropriedade_Usuario_Id(usuario.getId());
+        } else {
+            Instant instanteDesde;
+            try {
+                instanteDesde = Instant.parse(desde);
+            } catch (Exception e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parametro 'desde' invalido");
+            }
+            lista = talhaoRepository.findByPropriedade_Usuario_IdAndAtualizadoEmAfter(usuario.getId(), instanteDesde);
+        }
+        return lista.stream().map(TalhaoSyncResponse::de).toList();
+    }
+
+    private void aplicarSync(Talhao t, TalhaoSyncRequest item, Propriedade propriedade) {
+        t.setPropriedade(propriedade);
+        t.setNome(item.getNome());
+        t.setAreaHa(item.getAreaHa());
+        t.setCultura(item.getCultura());
     }
 }
