@@ -77,6 +77,8 @@ public class TalhaoService {
     private void aplicar(Talhao t, TalhaoRequest request) {
         t.setNome(request.getNome());
         t.setAreaHa(request.getAreaHa());
+        t.setLatitude(request.getLatitude());
+        t.setLongitude(request.getLongitude());
     }
 
     // ----------------------------------------------------------------------
@@ -159,5 +161,7 @@ public class TalhaoService {
         t.setNome(item.getNome());
         t.setAreaHa(item.getAreaHa());
         t.setCultura(item.getCultura());
+        t.setLatitude(item.getLatitude());
+        t.setLongitude(item.getLongitude());
     }
 }

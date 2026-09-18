@@ -85,6 +85,8 @@ public class PropriedadeService {
         p.setCib(request.getCib());
         p.setValor(request.getValor());
         p.setObservacoes(request.getObservacoes());
+        p.setLatitude(request.getLatitude());
+        p.setLongitude(request.getLongitude());
     }
 
     // ----------------------------------------------------------------------
@@ -159,5 +161,7 @@ public class PropriedadeService {
         p.setCib(item.getCib());
         p.setValor(item.getValor());
         p.setObservacoes(item.getObservacoes());
+        p.setLatitude(item.getLatitude());
+        p.setLongitude(item.getLongitude());
     }
 }

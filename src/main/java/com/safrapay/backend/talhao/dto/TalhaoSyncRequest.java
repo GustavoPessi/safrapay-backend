@@ -12,6 +12,8 @@ public class TalhaoSyncRequest {
     private String nome;
     private Double areaHa;
     private String cultura;
+    private Double latitude;
+    private Double longitude;
     private String atualizadoEm;
 
     public String getUuid() { return uuid; }
@@ -24,6 +26,10 @@ public class TalhaoSyncRequest {
     public void setAreaHa(Double areaHa) { this.areaHa = areaHa; }
     public String getCultura() { return cultura; }
     public void setCultura(String cultura) { this.cultura = cultura; }
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
     public String getAtualizadoEm() { return atualizadoEm; }
     public void setAtualizadoEm(String atualizadoEm) { this.atualizadoEm = atualizadoEm; }
 }

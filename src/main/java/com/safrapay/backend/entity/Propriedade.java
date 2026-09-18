@@ -41,4 +41,7 @@ public class Propriedade extends BaseSyncEntity {
     private BigDecimal valor;
 
     private String observacoes;
+
+    private Double latitude;   // coordenada GPS - opcional (Geolocalizacao Nivel 1, 18/09/2026)
+    private Double longitude;  // coordenada GPS - opcional (Geolocalizacao Nivel 1, 18/09/2026)
 }

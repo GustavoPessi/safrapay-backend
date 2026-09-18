@@ -31,4 +31,7 @@ public class Talhao extends BaseSyncEntity {
     // para a sincronizacao (14/09/2026); coluna criada automaticamente pelo
     // ddl-auto=update no proximo deploy.
     private String cultura;
+
+    private Double latitude;   // coordenada GPS - opcional (Geolocalizacao Nivel 1, 18/09/2026)
+    private Double longitude;  // coordenada GPS - opcional (Geolocalizacao Nivel 1, 18/09/2026)
 }

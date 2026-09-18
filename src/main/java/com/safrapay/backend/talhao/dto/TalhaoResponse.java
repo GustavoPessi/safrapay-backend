@@ -9,6 +9,8 @@ public class TalhaoResponse {
     private Long propriedadeId;
     private String nome;
     private Double areaHa;
+    private Double latitude;
+    private Double longitude;
 
     public static TalhaoResponse de(Talhao t) {
         TalhaoResponse r = new TalhaoResponse();
@@ -17,6 +19,8 @@ public class TalhaoResponse {
         r.propriedadeId = t.getPropriedade().getId();
         r.nome = t.getNome();
         r.areaHa = t.getAreaHa();
+        r.latitude = t.getLatitude();
+        r.longitude = t.getLongitude();
         return r;
     }
 
@@ -25,4 +29,6 @@ public class TalhaoResponse {
     public Long getPropriedadeId() { return propriedadeId; }
     public String getNome() { return nome; }
     public Double getAreaHa() { return areaHa; }
+    public Double getLatitude() { return latitude; }
+    public Double getLongitude() { return longitude; }
 }
