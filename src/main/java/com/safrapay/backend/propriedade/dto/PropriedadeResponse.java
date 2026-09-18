@@ -16,6 +16,8 @@ public class PropriedadeResponse {
     private String cib;
     private BigDecimal valor;
     private String observacoes;
+    private Double latitude;
+    private Double longitude;
 
     public static PropriedadeResponse de(Propriedade p) {
         PropriedadeResponse r = new PropriedadeResponse();
@@ -29,6 +31,8 @@ public class PropriedadeResponse {
         r.cib = p.getCib();
         r.valor = p.getValor();
         r.observacoes = p.getObservacoes();
+        r.latitude = p.getLatitude();
+        r.longitude = p.getLongitude();
         return r;
     }
 
@@ -42,4 +46,6 @@ public class PropriedadeResponse {
     public String getCib() { return cib; }
     public BigDecimal getValor() { return valor; }
     public String getObservacoes() { return observacoes; }
+    public Double getLatitude() { return latitude; }
+    public Double getLongitude() { return longitude; }
 }

@@ -10,6 +10,8 @@ public class TalhaoSyncResponse {
     private String nome;
     private Double areaHa;
     private String cultura;
+    private Double latitude;
+    private Double longitude;
     private String atualizadoEm;
 
     public static TalhaoSyncResponse de(Talhao t) {
@@ -19,6 +21,8 @@ public class TalhaoSyncResponse {
         r.nome = t.getNome();
         r.areaHa = t.getAreaHa();
         r.cultura = t.getCultura();
+        r.latitude = t.getLatitude();
+        r.longitude = t.getLongitude();
         r.atualizadoEm = SyncDateUtil.formatar(t.getAtualizadoEm());
         return r;
     }
@@ -28,5 +32,7 @@ public class TalhaoSyncResponse {
     public String getNome() { return nome; }
     public Double getAreaHa() { return areaHa; }
     public String getCultura() { return cultura; }
+    public Double getLatitude() { return latitude; }
+    public Double getLongitude() { return longitude; }
     public String getAtualizadoEm() { return atualizadoEm; }
 }

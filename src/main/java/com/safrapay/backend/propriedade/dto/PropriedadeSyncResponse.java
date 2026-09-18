@@ -17,6 +17,8 @@ public class PropriedadeSyncResponse {
     private String cib;
     private BigDecimal valor;
     private String observacoes;
+    private Double latitude;
+    private Double longitude;
     private String atualizadoEm;
 
     public static PropriedadeSyncResponse de(Propriedade p) {
@@ -30,6 +32,8 @@ public class PropriedadeSyncResponse {
         r.cib = p.getCib();
         r.valor = p.getValor();
         r.observacoes = p.getObservacoes();
+        r.latitude = p.getLatitude();
+        r.longitude = p.getLongitude();
         r.atualizadoEm = SyncDateUtil.formatar(p.getAtualizadoEm());
         return r;
     }
@@ -43,5 +47,7 @@ public class PropriedadeSyncResponse {
     public String getCib() { return cib; }
     public BigDecimal getValor() { return valor; }
     public String getObservacoes() { return observacoes; }
+    public Double getLatitude() { return latitude; }
+    public Double getLongitude() { return longitude; }
     public String getAtualizadoEm() { return atualizadoEm; }
 }

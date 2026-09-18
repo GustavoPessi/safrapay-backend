@@ -18,6 +18,8 @@ public class PropriedadeSyncRequest {
     private String cib;
     private BigDecimal valor;
     private String observacoes;
+    private Double latitude;
+    private Double longitude;
     private String atualizadoEm;
 
     public String getUuid() { return uuid; }
@@ -38,6 +40,10 @@ public class PropriedadeSyncRequest {
     public void setValor(BigDecimal valor) { this.valor = valor; }
     public String getObservacoes() { return observacoes; }
     public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
     public String getAtualizadoEm() { return atualizadoEm; }
     public void setAtualizadoEm(String atualizadoEm) { this.atualizadoEm = atualizadoEm; }
 }
