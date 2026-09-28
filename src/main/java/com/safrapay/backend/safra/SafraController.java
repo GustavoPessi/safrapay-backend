@@ -2,6 +2,8 @@ package com.safrapay.backend.safra;
 
 import com.safrapay.backend.safra.dto.SafraRequest;
 import com.safrapay.backend.safra.dto.SafraResponse;
+import com.safrapay.backend.safra.dto.SafraSyncRequest;
+import com.safrapay.backend.safra.dto.SafraSyncResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +44,17 @@ public class SafraController {
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- Sincronizacao (offline-first) ---
+
+    @PostMapping("/sync")
+    public List<SafraSyncResponse> sincronizarPush(@RequestBody List<SafraSyncRequest> itens) {
+        return service.sincronizarPush(itens);
+    }
+
+    @GetMapping("/sync")
+    public List<SafraSyncResponse> sincronizarPull(@RequestParam(required = false) String desde) {
+        return service.sincronizarPull(desde);
     }
 }

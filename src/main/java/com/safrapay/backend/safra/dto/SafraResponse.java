@@ -9,7 +9,7 @@ public class SafraResponse {
     private Long id;
     private String uuid;
     private Long talhaoId;
-    private Long culturaId;
+    private String variedade;
     private String anoSafra;
     private LocalDate dataInicio;
     private LocalDate dataFim;
@@ -19,7 +19,7 @@ public class SafraResponse {
         r.id = s.getId();
         r.uuid = s.getUuid();
         r.talhaoId = s.getTalhao().getId();
-        r.culturaId = s.getCultura().getId();
+        r.variedade = s.getVariedade();
         r.anoSafra = s.getAnoSafra();
         r.dataInicio = s.getDataInicio();
         r.dataFim = s.getDataFim();
@@ -29,7 +29,7 @@ public class SafraResponse {
     public Long getId() { return id; }
     public String getUuid() { return uuid; }
     public Long getTalhaoId() { return talhaoId; }
-    public Long getCulturaId() { return culturaId; }
+    public String getVariedade() { return variedade; }
     public String getAnoSafra() { return anoSafra; }
     public LocalDate getDataInicio() { return dataInicio; }
     public LocalDate getDataFim() { return dataFim; }
