@@ -7,9 +7,9 @@ package com.safrapay.backend.despesa.dto;
  * - "safraUuid": safra-pai (obrigatoria).
  * - "categoriaNome": categoria de despesa pelo NOME (tabela fixa de 7 nomes,
  *   unica nos dois lados; os ids autoincremento nao coincidem).
- * - "maquinaUuid": maquina opcional. Maquina so sincroniza na Fase 4 - ate
- *   la, se o servidor nao conhecer a maquina, o vinculo e ignorado aqui (a
- *   despesa entra sem maquina no servidor) e o app preserva o vinculo local.
+ * - "maquinaUuid": maquina opcional. Desde a Fase 4 a maquina sincroniza
+ *   antes da despesa; se o servidor ainda assim nao conhecer a maquina, o
+ *   vinculo e ignorado aqui e o app preserva o vinculo local.
  */
 public class DespesaSyncRequest {
 

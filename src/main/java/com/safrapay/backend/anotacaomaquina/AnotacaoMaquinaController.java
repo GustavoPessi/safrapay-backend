@@ -2,6 +2,8 @@ package com.safrapay.backend.anotacaomaquina;
 
 import com.safrapay.backend.anotacaomaquina.dto.AnotacaoMaquinaRequest;
 import com.safrapay.backend.anotacaomaquina.dto.AnotacaoMaquinaResponse;
+import com.safrapay.backend.anotacaomaquina.dto.AnotacaoMaquinaSyncRequest;
+import com.safrapay.backend.anotacaomaquina.dto.AnotacaoMaquinaSyncResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +44,17 @@ public class AnotacaoMaquinaController {
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- Sincronizacao (offline-first) ---
+
+    @PostMapping("/sync")
+    public List<AnotacaoMaquinaSyncResponse> sincronizarPush(@RequestBody List<AnotacaoMaquinaSyncRequest> itens) {
+        return service.sincronizarPush(itens);
+    }
+
+    @GetMapping("/sync")
+    public List<AnotacaoMaquinaSyncResponse> sincronizarPull(@RequestParam(required = false) String desde) {
+        return service.sincronizarPull(desde);
     }
 }

@@ -110,11 +110,12 @@ public class DespesaService {
     // - Categoria: resolvida pelo NOME. Se ainda nao existir no servidor (o
     //   backend nao tem seed dessa tabela), e criada aqui na hora - a tabela e
     //   um catalogo global de nomes fixos, igual ao seed do app.
-    // - Maquina (opcional): resolvida pelo uuid, escopada ao usuario. Se o app
-    //   mandar uma maquina que o servidor ainda nao conhece (Maquina so
-    //   sincroniza na Fase 4), o vinculo existente no servidor e mantido e
-    //   nada e apagado; o app, do lado dele, nunca apaga o vinculo local por
-    //   causa de um maquinaUuid nulo vindo do servidor.
+    // - Maquina (opcional): resolvida pelo uuid, escopada ao usuario. Desde a
+    //   Fase 4 o app sincroniza as maquinas ANTES das despesas, entao a maquina
+    //   normalmente ja existe aqui. Se mesmo assim vier uma maquina que o
+    //   servidor nao conhece, o vinculo existente no servidor e mantido e nada
+    //   e apagado; o app, do lado dele, nunca apaga o vinculo local por causa
+    //   de um maquinaUuid nulo vindo do servidor.
     // @Transactional porque DespesaSyncResponse.de() le safra/categoria/maquina
     // via proxy lazy.
     // ----------------------------------------------------------------------

@@ -30,6 +30,9 @@ public class Maquina extends BaseSyncEntity {
 
     private String tipo;
 
+    // Modelo (ex.: "MF 4275") - espelha o campo do app. Coluna criada na V3.
+    private String modelo;
+
     private String ano;
 
     private String identificacao;

@@ -13,9 +13,11 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 /**
- * Versao base da anotacao, igual ao schema local (texto + data).
- * Os campos de ciclo de vida (prazo/status/responsavel/conclusao) para o
- * modo multi-usuario sao uma fase futura - ver Notion, pagina
+ * Anotacao de maquina, igual ao schema local do app: texto + data opcional
+ * (no app funciona como data da revisao/prazo) + concluida.
+ * "data" opcional e "concluida" entraram na V3 (Fase 4 do sync, 28/09/2026).
+ * Os campos de ciclo de vida do modo multi-usuario (prazo/status/responsavel/
+ * concluido_por) sao uma fase futura - ver Notion, pagina
  * "Backend & Multi-usuario".
  */
 @Getter
@@ -32,6 +34,8 @@ public class AnotacaoMaquina extends BaseSyncEntity {
     @Column(nullable = false)
     private String texto;
 
-    @Column(nullable = false)
     private LocalDate data;
+
+    @Column(nullable = false)
+    private boolean concluida = false;
 }
