@@ -11,6 +11,7 @@ public class MaquinaResponse {
     private String nome;
     private String marca;
     private String tipo;
+    private String modelo;
     private String ano;
     private String identificacao;
     private BigDecimal valor;
@@ -23,6 +24,7 @@ public class MaquinaResponse {
         r.nome = m.getNome();
         r.marca = m.getMarca();
         r.tipo = m.getTipo();
+        r.modelo = m.getModelo();
         r.ano = m.getAno();
         r.identificacao = m.getIdentificacao();
         r.valor = m.getValor();
@@ -35,6 +37,7 @@ public class MaquinaResponse {
     public String getNome() { return nome; }
     public String getMarca() { return marca; }
     public String getTipo() { return tipo; }
+    public String getModelo() { return modelo; }
     public String getAno() { return ano; }
     public String getIdentificacao() { return identificacao; }
     public BigDecimal getValor() { return valor; }

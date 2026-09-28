@@ -11,6 +11,7 @@ public class AnotacaoMaquinaResponse {
     private Long maquinaId;
     private String texto;
     private LocalDate data;
+    private boolean concluida;
 
     public static AnotacaoMaquinaResponse de(AnotacaoMaquina a) {
         AnotacaoMaquinaResponse r = new AnotacaoMaquinaResponse();
@@ -19,6 +20,7 @@ public class AnotacaoMaquinaResponse {
         r.maquinaId = a.getMaquina().getId();
         r.texto = a.getTexto();
         r.data = a.getData();
+        r.concluida = a.isConcluida();
         return r;
     }
 
@@ -27,4 +29,5 @@ public class AnotacaoMaquinaResponse {
     public Long getMaquinaId() { return maquinaId; }
     public String getTexto() { return texto; }
     public LocalDate getData() { return data; }
+    public boolean isConcluida() { return concluida; }
 }

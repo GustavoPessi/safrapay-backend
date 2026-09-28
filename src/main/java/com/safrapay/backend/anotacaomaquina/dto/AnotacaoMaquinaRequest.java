@@ -13,8 +13,10 @@ public class AnotacaoMaquinaRequest {
     @NotBlank(message = "Texto eh obrigatorio")
     private String texto;
 
-    @NotNull(message = "Data eh obrigatoria")
+    // Opcional desde a V3 (igual ao app).
     private LocalDate data;
+
+    private Boolean concluida;
 
     public Long getMaquinaId() { return maquinaId; }
     public void setMaquinaId(Long maquinaId) { this.maquinaId = maquinaId; }
@@ -22,4 +24,6 @@ public class AnotacaoMaquinaRequest {
     public void setTexto(String texto) { this.texto = texto; }
     public LocalDate getData() { return data; }
     public void setData(LocalDate data) { this.data = data; }
+    public Boolean getConcluida() { return concluida; }
+    public void setConcluida(Boolean concluida) { this.concluida = concluida; }
 }
