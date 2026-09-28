@@ -2,6 +2,8 @@ package com.safrapay.backend.despesa;
 
 import com.safrapay.backend.despesa.dto.DespesaRequest;
 import com.safrapay.backend.despesa.dto.DespesaResponse;
+import com.safrapay.backend.despesa.dto.DespesaSyncRequest;
+import com.safrapay.backend.despesa.dto.DespesaSyncResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +44,17 @@ public class DespesaController {
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- Sincronizacao (offline-first) ---
+
+    @PostMapping("/sync")
+    public List<DespesaSyncResponse> sincronizarPush(@RequestBody List<DespesaSyncRequest> itens) {
+        return service.sincronizarPush(itens);
+    }
+
+    @GetMapping("/sync")
+    public List<DespesaSyncResponse> sincronizarPull(@RequestParam(required = false) String desde) {
+        return service.sincronizarPull(desde);
     }
 }

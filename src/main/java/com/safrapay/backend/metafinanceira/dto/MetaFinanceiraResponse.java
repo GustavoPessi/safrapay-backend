@@ -9,7 +9,6 @@ public class MetaFinanceiraResponse {
 
     private Long id;
     private String uuid;
-    private Long culturaId;
     private Long safraId;
     private String descricao;
     private BigDecimal valorAlvo;
@@ -19,8 +18,7 @@ public class MetaFinanceiraResponse {
         MetaFinanceiraResponse r = new MetaFinanceiraResponse();
         r.id = m.getId();
         r.uuid = m.getUuid();
-        r.culturaId = m.getCultura().getId();
-        r.safraId = m.getSafra() != null ? m.getSafra().getId() : null;
+        r.safraId = m.getSafra().getId();
         r.descricao = m.getDescricao();
         r.valorAlvo = m.getValorAlvo();
         r.prazo = m.getPrazo();
@@ -29,7 +27,6 @@ public class MetaFinanceiraResponse {
 
     public Long getId() { return id; }
     public String getUuid() { return uuid; }
-    public Long getCulturaId() { return culturaId; }
     public Long getSafraId() { return safraId; }
     public String getDescricao() { return descricao; }
     public BigDecimal getValorAlvo() { return valorAlvo; }

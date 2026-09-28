@@ -8,10 +8,7 @@ import java.time.LocalDate;
 
 public class MetaFinanceiraRequest {
 
-    @NotNull(message = "culturaId eh obrigatorio")
-    private Long culturaId;
-
-    /** Opcional - meta pode ser da cultura toda ou de uma safra especifica. */
+    @NotNull(message = "safraId eh obrigatorio")
     private Long safraId;
 
     @NotBlank(message = "Descricao eh obrigatoria")
@@ -22,8 +19,6 @@ public class MetaFinanceiraRequest {
 
     private LocalDate prazo;
 
-    public Long getCulturaId() { return culturaId; }
-    public void setCulturaId(Long culturaId) { this.culturaId = culturaId; }
     public Long getSafraId() { return safraId; }
     public void setSafraId(Long safraId) { this.safraId = safraId; }
     public String getDescricao() { return descricao; }
