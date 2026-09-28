@@ -28,8 +28,8 @@ public class Safra extends BaseSyncEntity {
     // Cultura em 14/09/2026 (a cultura passou a vir do talhao - ver
     // Talhao.cultura); o vinculo obrigatorio com Cultura foi removido daqui
     // em 28/09/2026 para destravar a Fase 2 do motor de sincronizacao, ja
-    // que o app nunca envia um culturaId. Coluna criada automaticamente pelo
-    // ddl-auto=update no proximo deploy.
+    // que o app nunca envia um culturaId. A coluna orfa cultura_id foi
+    // removida do banco na migration V2 (Flyway).
     private String variedade;
 
     @Column(name = "ano_safra", nullable = false)
