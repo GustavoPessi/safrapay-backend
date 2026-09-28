@@ -71,6 +71,14 @@ public class SafraService {
         return s;
     }
 
+    // Usado pela sincronizacao de Receita/Despesa/Meta (Fase 3): resolve a
+    // safra-pai a partir do uuid mandado pelo app. Mesmo padrao de
+    // TalhaoService.buscarEntidadePorUuid.
+    public Safra buscarEntidadePorUuid(String uuid) {
+        Usuario usuario = SecurityUtils.usuarioLogado();
+        return safraRepository.findByUuidAndTalhao_Propriedade_Usuario_Id(uuid, usuario.getId()).orElse(null);
+    }
+
     private void aplicar(Safra s, SafraRequest request) {
         s.setVariedade(request.getVariedade());
         s.setAnoSafra(request.getAnoSafra());

@@ -13,6 +13,17 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Meta financeira vinculada a uma SAFRA (espelha o app: progresso = saldo
+ * daquela safra).
+ *
+ * Mudanca de 28/09/2026 (Fase 3 da sincronizacao): removido o vinculo
+ * obrigatorio com Cultura e a safra passou a ser obrigatoria. O app abandonou
+ * a entidade Cultura em 14/09/2026 e sempre liga a meta a uma safra - mesmo
+ * problema que a entidade Safra tinha (corrigido na Fase 2). A coluna antiga
+ * cultura_id fica orfa na tabela (ddl-auto=update nao remove colunas) e
+ * precisou de "DROP NOT NULL" manual no banco.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,11 +32,7 @@ import java.time.LocalDate;
 public class MetaFinanceira extends BaseSyncEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "cultura_id", nullable = false)
-    private Cultura cultura;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "safra_id", nullable = true)
+    @JoinColumn(name = "safra_id", nullable = false)
     private Safra safra;
 
     @Column(nullable = false)
