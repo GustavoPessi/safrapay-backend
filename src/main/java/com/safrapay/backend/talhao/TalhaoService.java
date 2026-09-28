@@ -74,6 +74,14 @@ public class TalhaoService {
         return t;
     }
 
+    // Usado pelo SafraService no push de sincronizacao: resolve o talhao-pai a
+    // partir do uuid mandado pelo app (nunca um id local ou do servidor).
+    // Mesmo padrao de PropriedadeService.buscarEntidadePorUuid.
+    public Talhao buscarEntidadePorUuid(String uuid) {
+        Usuario usuario = SecurityUtils.usuarioLogado();
+        return talhaoRepository.findByUuidAndPropriedade_Usuario_Id(uuid, usuario.getId()).orElse(null);
+    }
+
     private void aplicar(Talhao t, TalhaoRequest request) {
         t.setNome(request.getNome());
         t.setAreaHa(request.getAreaHa());

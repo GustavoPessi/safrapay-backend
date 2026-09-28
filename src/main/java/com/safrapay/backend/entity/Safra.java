@@ -23,9 +23,14 @@ public class Safra extends BaseSyncEntity {
     @JoinColumn(name = "talhao_id", nullable = false)
     private Talhao talhao;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "cultura_id", nullable = false)
-    private Cultura cultura;
+    // Variedade da semente (ex.: "Intacta RR2") - opcional. Espelha o campo
+    // local do app. A cultura NAO vive mais aqui: o app abandonou a entidade
+    // Cultura em 14/09/2026 (a cultura passou a vir do talhao - ver
+    // Talhao.cultura); o vinculo obrigatorio com Cultura foi removido daqui
+    // em 28/09/2026 para destravar a Fase 2 do motor de sincronizacao, ja
+    // que o app nunca envia um culturaId. Coluna criada automaticamente pelo
+    // ddl-auto=update no proximo deploy.
+    private String variedade;
 
     @Column(name = "ano_safra", nullable = false)
     private String anoSafra;

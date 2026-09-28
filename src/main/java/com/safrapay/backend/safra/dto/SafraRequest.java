@@ -10,8 +10,8 @@ public class SafraRequest {
     @NotNull(message = "talhaoId eh obrigatorio")
     private Long talhaoId;
 
-    @NotNull(message = "culturaId eh obrigatorio")
-    private Long culturaId;
+    // Variedade da semente (ex.: "Intacta RR2") - opcional.
+    private String variedade;
 
     @NotBlank(message = "anoSafra eh obrigatorio")
     private String anoSafra;
@@ -21,8 +21,8 @@ public class SafraRequest {
 
     public Long getTalhaoId() { return talhaoId; }
     public void setTalhaoId(Long talhaoId) { this.talhaoId = talhaoId; }
-    public Long getCulturaId() { return culturaId; }
-    public void setCulturaId(Long culturaId) { this.culturaId = culturaId; }
+    public String getVariedade() { return variedade; }
+    public void setVariedade(String variedade) { this.variedade = variedade; }
     public String getAnoSafra() { return anoSafra; }
     public void setAnoSafra(String anoSafra) { this.anoSafra = anoSafra; }
     public LocalDate getDataInicio() { return dataInicio; }
