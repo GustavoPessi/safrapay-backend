@@ -21,8 +21,7 @@ import java.time.LocalDate;
  * obrigatorio com Cultura e a safra passou a ser obrigatoria. O app abandonou
  * a entidade Cultura em 14/09/2026 e sempre liga a meta a uma safra - mesmo
  * problema que a entidade Safra tinha (corrigido na Fase 2). A coluna antiga
- * cultura_id fica orfa na tabela (ddl-auto=update nao remove colunas) e
- * precisou de "DROP NOT NULL" manual no banco.
+ * cultura_id foi removida do banco na migration V2 (Flyway).
  */
 @Getter
 @Setter
