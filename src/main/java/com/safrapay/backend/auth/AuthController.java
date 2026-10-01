@@ -6,6 +6,7 @@ import com.safrapay.backend.auth.dto.EsqueciSenhaRequest;
 import com.safrapay.backend.auth.dto.LoginRequest;
 import com.safrapay.backend.auth.dto.MensagemResponse;
 import com.safrapay.backend.auth.dto.RedefinirSenhaRequest;
+import com.safrapay.backend.auth.dto.RefreshRequest;
 import com.safrapay.backend.auth.dto.RegisterRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,22 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    /**
+     * Troca o refresh token (recebido no login) por um token de acesso novo e um
+     * refresh token novo. Publica: e chamada justamente quando o token de acesso
+     * venceu. 401 = refresh token invalido/vencido/revogado -> pedir login.
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+        return ResponseEntity.ok(authService.renovar(request));
+    }
+
+    /** Encerra a sessao deste aparelho (botao "Sair" do app). Sempre 200. */
+    @PostMapping("/logout")
+    public ResponseEntity<MensagemResponse> logout(@Valid @RequestBody RefreshRequest request) {
+        return ResponseEntity.ok(authService.logout(request));
     }
 
     @GetMapping("/confirmar-email")

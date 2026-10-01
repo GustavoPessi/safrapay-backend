@@ -6,6 +6,7 @@ import com.safrapay.backend.auth.dto.EsqueciSenhaRequest;
 import com.safrapay.backend.auth.dto.LoginRequest;
 import com.safrapay.backend.auth.dto.MensagemResponse;
 import com.safrapay.backend.auth.dto.RedefinirSenhaRequest;
+import com.safrapay.backend.auth.dto.RefreshRequest;
 import com.safrapay.backend.auth.dto.RegisterRequest;
 import com.safrapay.backend.email.EmailService;
 import com.safrapay.backend.entity.TipoToken;
@@ -33,19 +34,22 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;
     private final EmailService emailService;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthService(UsuarioRepository usuarioRepository,
                         PasswordEncoder passwordEncoder,
                         JwtService jwtService,
                         AuthenticationManager authenticationManager,
                         TokenService tokenService,
-                        EmailService emailService) {
+                        EmailService emailService,
+                        RefreshTokenService refreshTokenService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.tokenService = tokenService;
         this.emailService = emailService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public MensagemResponse registrar(RegisterRequest request) {
@@ -96,16 +100,40 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Confirme seu e-mail antes de fazer login");
         }
 
-        UsuarioDetailsImpl userDetails = new UsuarioDetailsImpl(usuario);
-        String token = jwtService.gerarToken(userDetails);
+        return montarResposta(usuario, refreshTokenService.emitir(usuario));
+    }
 
-        return new AuthResponse(
+    /**
+     * Troca o refresh token por um token de acesso novo + refresh token novo
+     * (rotacao). 401 se o refresh token for invalido, vencido ou revogado: ai o
+     * app pede login de novo.
+     */
+    public AuthResponse renovar(RefreshRequest request) {
+        RefreshTokenService.Renovacao renovacao = refreshTokenService.renovar(request.getRefreshToken());
+        Usuario usuario = renovacao.usuario();
+        if (!usuario.isEmailVerificado()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessao expirada. Faca login novamente");
+        }
+        return montarResposta(usuario, renovacao.refreshToken());
+    }
+
+    /** Logout: encerra a sessao deste aparelho (o refresh token deixa de valer). */
+    public MensagemResponse logout(RefreshRequest request) {
+        refreshTokenService.revogar(request.getRefreshToken());
+        return new MensagemResponse("Sessao encerrada.");
+    }
+
+    private AuthResponse montarResposta(Usuario usuario, String refreshToken) {
+        String token = jwtService.gerarToken(new UsuarioDetailsImpl(usuario));
+        AuthResponse resposta = new AuthResponse(
                 token,
                 usuario.getNome(),
                 usuario.getEmail(),
                 usuario.getCpf(),
                 usuario.getTelefone(),
                 usuario.getNascimento() == null ? null : usuario.getNascimento().toString());
+        resposta.setRefreshToken(refreshToken);
+        return resposta;
     }
 
     public MensagemResponse confirmarEmail(String token) {
@@ -130,6 +158,8 @@ public class AuthService {
         Usuario usuario = tokenService.consumirToken(request.getToken(), TipoToken.RESET_SENHA);
         usuario.setSenhaHash(passwordEncoder.encode(request.getNovaSenha()));
         usuarioRepository.save(usuario);
+        // Senha redefinida por e-mail: encerra as sessoes abertas em todos os aparelhos.
+        refreshTokenService.revogarTodos(usuario);
         return new MensagemResponse("Senha redefinida com sucesso.");
     }
 
@@ -148,6 +178,9 @@ public class AuthService {
 
         usuario.setSenhaHash(passwordEncoder.encode(request.getNovaSenha()));
         usuarioRepository.save(usuario);
+        // Encerra as sessoes (refresh tokens) de todos os aparelhos. O app, que
+        // acabou de receber a senha nova, deve fazer login de novo em seguida.
+        refreshTokenService.revogarTodos(usuario);
 
         return new MensagemResponse("Senha alterada com sucesso.");
     }
