@@ -7,7 +7,8 @@ import java.util.List;
  *
  * O servidor não guarda a conversa: a cada chamada o app manda o histórico
  * recente ("mensagens", a última é a nova mensagem do produtor) e o
- * "contexto" do usuário (safras, categorias, máquinas com os uuids do Room),
+ * "contexto" do usuário (safras, categorias, máquinas, propriedades e talhões com
+ * os uuids do Room — nenhum valor financeiro),
  * pra IA saber, por exemplo, que "safra da soja" é a safra X — inclusive
  * coisas cadastradas offline que ainda não sincronizaram.
  */
@@ -82,6 +83,10 @@ public class ChatMensagemRequest {
         private List<Safra> safras;
         private List<String> categorias;
         private List<Maquina> maquinas;
+        /** v2 (01/10/2026): propriedades do produtor. */
+        private List<Propriedade> propriedades;
+        /** v2 (01/10/2026): talhões do produtor. */
+        private List<Talhao> talhoes;
 
         public List<Safra> getSafras() { return safras; }
         public void setSafras(List<Safra> safras) { this.safras = safras; }
@@ -89,6 +94,10 @@ public class ChatMensagemRequest {
         public void setCategorias(List<String> categorias) { this.categorias = categorias; }
         public List<Maquina> getMaquinas() { return maquinas; }
         public void setMaquinas(List<Maquina> maquinas) { this.maquinas = maquinas; }
+        public List<Propriedade> getPropriedades() { return propriedades; }
+        public void setPropriedades(List<Propriedade> propriedades) { this.propriedades = propriedades; }
+        public List<Talhao> getTalhoes() { return talhoes; }
+        public void setTalhoes(List<Talhao> talhoes) { this.talhoes = talhoes; }
     }
 
     public static class Safra {
@@ -97,6 +106,17 @@ public class ChatMensagemRequest {
         private String descricao;
         /** true = safra sem data de fim (em andamento). */
         private Boolean ativa;
+        // v2 (01/10/2026) — todos opcionais
+        private String cultura;
+        /** Nome do talhão. */
+        private String talhao;
+        /** Ex.: "2025/2026". */
+        private String anoSafra;
+        /** yyyy-MM-dd ou null. */
+        private String dataInicio;
+        /** yyyy-MM-dd ou null (null = em andamento). */
+        private String dataFim;
+        private String propriedadeUuid;
 
         public String getUuid() { return uuid; }
         public void setUuid(String uuid) { this.uuid = uuid; }
@@ -104,6 +124,52 @@ public class ChatMensagemRequest {
         public void setDescricao(String descricao) { this.descricao = descricao; }
         public Boolean getAtiva() { return ativa; }
         public void setAtiva(Boolean ativa) { this.ativa = ativa; }
+        public String getCultura() { return cultura; }
+        public void setCultura(String cultura) { this.cultura = cultura; }
+        public String getTalhao() { return talhao; }
+        public void setTalhao(String talhao) { this.talhao = talhao; }
+        public String getAnoSafra() { return anoSafra; }
+        public void setAnoSafra(String anoSafra) { this.anoSafra = anoSafra; }
+        public String getDataInicio() { return dataInicio; }
+        public void setDataInicio(String dataInicio) { this.dataInicio = dataInicio; }
+        public String getDataFim() { return dataFim; }
+        public void setDataFim(String dataFim) { this.dataFim = dataFim; }
+        public String getPropriedadeUuid() { return propriedadeUuid; }
+        public void setPropriedadeUuid(String propriedadeUuid) { this.propriedadeUuid = propriedadeUuid; }
+    }
+
+    public static class Propriedade {
+        private String uuid;
+        private String nome;
+        /** Área total em hectares (pode ser null). */
+        private Double areaTotal;
+
+        public String getUuid() { return uuid; }
+        public void setUuid(String uuid) { this.uuid = uuid; }
+        public String getNome() { return nome; }
+        public void setNome(String nome) { this.nome = nome; }
+        public Double getAreaTotal() { return areaTotal; }
+        public void setAreaTotal(Double areaTotal) { this.areaTotal = areaTotal; }
+    }
+
+    public static class Talhao {
+        private String uuid;
+        private String nome;
+        private String propriedadeUuid;
+        private String cultura;
+        /** Área em hectares (pode ser null). */
+        private Double areaHa;
+
+        public String getUuid() { return uuid; }
+        public void setUuid(String uuid) { this.uuid = uuid; }
+        public String getNome() { return nome; }
+        public void setNome(String nome) { this.nome = nome; }
+        public String getPropriedadeUuid() { return propriedadeUuid; }
+        public void setPropriedadeUuid(String propriedadeUuid) { this.propriedadeUuid = propriedadeUuid; }
+        public String getCultura() { return cultura; }
+        public void setCultura(String cultura) { this.cultura = cultura; }
+        public Double getAreaHa() { return areaHa; }
+        public void setAreaHa(Double areaHa) { this.areaHa = areaHa; }
     }
 
     public static class Maquina {
