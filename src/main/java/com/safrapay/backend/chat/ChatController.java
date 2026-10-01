@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * Códigos de resposta:
  *  200 - ok (ver "status" no corpo)
- *  400 - corpo inválido (sem mensagens / última mensagem não é do produtor)
+ *  400 - corpo inválido (sem mensagens / última mensagem não é do produtor / base64 inválido)
+ *  413 - foto maior que 5 MB
+ *  415 - foto em formato não suportado (aceita JPEG, PNG, WebP)
  *  429 - limite diário de mensagens atingido
  *  502 - falha ao falar com o serviço de IA (tentar de novo)
  *  503 - assistente não configurado no servidor (sem ANTHROPIC_API_KEY)
