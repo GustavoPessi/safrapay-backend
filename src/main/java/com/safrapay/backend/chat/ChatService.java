@@ -341,6 +341,8 @@ public class ChatService {
           .append("- Não citou e há 2 ou mais ativas → safraUuid null, status PRECISA_INFORMACAO, resposta com uma lista numerada das safras ativas ")
           .append("(use os rótulos) perguntando em qual lançar, e sugestoes com o rótulo de cada uma. ")
           .append("Depois entenda respostas curtas como \"1\", \"a primeira\", \"a da soja\", \"talhão A\" como escolha dessa lista.\n")
+          .append("- safraCitada (em cada lançamento): true SÓ se o produtor indicou a safra nesta conversa (citou cultura, talhão, ano ou propriedade, ")
+          .append("ou escolheu da lista); false se foi você que escolheu. Com 2 ou mais safras ativas, nunca escolha sozinho.\n")
           .append("- Nenhuma ativa, mas há encerradas → safraUuid null, PRECISA_INFORMACAO: liste as encerradas e pergunte se é em uma delas ")
           .append("ou se ele precisa abrir uma safra nova (no app: Início → \"+ Nova safra\").\n")
           .append("- Nenhuma safra cadastrada → explique que antes é preciso cadastrar uma safra no app (Início → \"+ Nova safra\").\n\n");
@@ -353,8 +355,9 @@ public class ChatService {
           .append("METAS; MAQUINAS (gasto por máquina e manutenções/anotações pendentes).\n")
           .append("- Preencha só os filtros que o produtor disse; o resto fica null. safraUuid, propriedadeUuid, talhaoUuid e maquinaUuid só com uuids das listas abaixo ")
           .append("(\"com o trator\" → maquinaUuid do trator). categoria só com um nome da lista de categorias. ")
-          .append("cultura (ex.: \"Soja\") quando ele falar de uma cultura em geral (\"na soja\", \"área de milho\"); ")
-          .append("safraUuid só quando ele indicar uma safra específica. ")
+          .append("Cultura citada (\"na soja\", \"do milho\", \"área de milho\") vai em cultura (ex.: \"Soja\"), NÃO em safraUuid — ")
+          .append("mesmo que só exista uma safra dessa cultura. safraUuid só quando ele falar de uma safra específica ")
+          .append("(\"safra 2025/2026\", \"safra do talhão A\") ou escolher da lista. ")
           .append("situacao só para SAFRAS: ATIVAS (padrão), ENCERRADAS ou TODAS. ")
           .append("agrupar só se ele pedir detalhamento: CATEGORIA, SAFRA, MES ou MAQUINA.\n")
           .append("- Período: preencha dataInicio/dataFim só se ele disser um dia ou período (um dia só = mesma data nos dois). ")
@@ -488,6 +491,11 @@ public class ChatService {
 
         boolean faltaAlgo = false;
         boolean faltaSafra = false;
+        boolean safraEscolhidaPelaIa = false;
+        List<ChatMensagemRequest.Safra> ativas = new ArrayList<>();
+        for (ChatMensagemRequest.Safra s : limitar(ctx.getSafras())) {
+            if (s != null && s.getUuid() != null && Boolean.TRUE.equals(s.getAtiva())) ativas.add(s);
+        }
         int descartados = 0;
         for (JsonNode item : saida.path("lancamentos")) {
             if (resp.getLancamentos().size() >= MAX_LANCAMENTOS) { descartados++; continue; }
@@ -527,6 +535,12 @@ public class ChatService {
             }
 
             String safra = textoOuNull(item.path("safraUuid"));
+            // Com 2+ safras ativas, a IA não pode escolher sozinha (regra do Gustavo):
+            // se ela marcou que o produtor não citou a safra, o servidor pergunta.
+            if (safra != null && ativas.size() >= 2 && !item.path("safraCitada").asBoolean(true)) {
+                safra = null;
+                safraEscolhidaPelaIa = true;
+            }
             if (safra != null && safras.contains(safra)) {
                 l.setSafraUuid(safra);
             } else {
@@ -548,7 +562,12 @@ public class ChatService {
         if (!resp.getLancamentos().isEmpty()) {
             // Lançamento tem prioridade sobre pergunta (a pergunta vira sugestão).
             resp.setStatus(faltaAlgo ? PRECISA_INFORMACAO : PROPOSTA);
-            if (faltaSafra && resp.getSugestoes().isEmpty()) resp.setSugestoes(sugestoesDeSafra(ctx));
+            if (safraEscolhidaPelaIa) {
+                resp.setResposta(perguntaSafra(resp.getLancamentos(), ativas));
+                resp.setSugestoes(sugestoesDeSafra(ctx));
+            } else if (faltaSafra && resp.getSugestoes().isEmpty()) {
+                resp.setSugestoes(sugestoesDeSafra(ctx));
+            }
         } else if (CONSULTA.equals(statusIa)) {
             ChatMensagemResponse.Consulta consulta = validarConsulta(saida.path("consulta"), ctx, categorias, safras, maquinas, hoje);
             if (consulta != null) {
@@ -556,6 +575,7 @@ public class ChatService {
                 resp.setConsulta(consulta);
                 // A IA não conhece os valores: qualquer "R$" na introdução seria inventado.
                 if (resp.getResposta().contains("R$")) resp.setResposta("Aqui está o que encontrei:");
+                resp.setResposta(avisarMesAtual(resp.getResposta(), consulta));
             } else {
                 resp.setStatus(SEM_LANCAMENTO);
             }
@@ -613,6 +633,50 @@ public class ChatService {
         String agrupar = nn(textoOuNull(c.path("agrupar"))).toUpperCase(Locale.ROOT);
         q.setAgrupar(AGRUPAMENTOS.contains(agrupar) ? agrupar : null);
         return q;
+    }
+
+    /**
+     * Pergunta montada pelo servidor quando a IA escolheu a safra sozinha com 2+
+     * ativas: resume o lançamento e lista as safras ativas numeradas.
+     */
+    static String perguntaSafra(List<LancamentoProposto> lancamentos, List<ChatMensagemRequest.Safra> ativas) {
+        StringBuilder sb = new StringBuilder();
+        if (lancamentos.size() == 1) {
+            LancamentoProposto l = lancamentos.get(0);
+            sb.append("Entendi: ").append("RECEITA".equals(l.getTipo()) ? "receita" : "despesa");
+            if (l.getValor() != null) sb.append(" de ").append(reais(l.getValor()));
+            if (l.getDescricao() != null) sb.append(" (").append(l.getDescricao()).append(')');
+            sb.append(". ");
+        } else {
+            sb.append("Entendi ").append(lancamentos.size()).append(" lançamentos. ");
+        }
+        sb.append("Em qual safra eu lanço?");
+        int i = 0;
+        for (ChatMensagemRequest.Safra s : ativas) {
+            if (++i > 10) break;
+            sb.append('\n').append(i).append(") ").append(rotuloSafra(s));
+        }
+        return sb.toString();
+    }
+
+    static String reais(double v) {
+        return String.format(Locale.forLanguageTag("pt-BR"), "R$ %,.2f", v);
+    }
+
+    /**
+     * GASTOS/RECEITAS/SALDO/LANCAMENTOS sem período e sem safra/cultura/talhão: o
+     * app usa o mês atual. Garante que a introdução deixe isso claro.
+     */
+    static String avisarMesAtual(String resposta, ChatMensagemResponse.Consulta q) {
+        boolean periodico = java.util.Set.of("GASTOS", "RECEITAS", "SALDO", "LANCAMENTOS").contains(q.getTipo());
+        boolean semEscopo = q.getDataInicio() == null && q.getDataFim() == null && q.getSafraUuid() == null
+                && q.getCultura() == null && q.getTalhaoUuid() == null;
+        if (!periodico || !semEscopo) return resposta;
+        String minusculo = resposta.toLowerCase(Locale.ROOT);
+        if (minusculo.contains("mês") || minusculo.contains("mes ")) return resposta;
+        String r = resposta.trim();
+        if (r.endsWith(":")) return r.substring(0, r.length() - 1).trim() + " neste mês:";
+        return r + " (neste mês)";
     }
 
     /** Usa a grafia da cultura que já existe no contexto (ex.: "soja" → "Soja"). */
@@ -717,9 +781,10 @@ public class ChatService {
                     "descricao": {"type": ["string", "null"], "description": "Descrição curta do lançamento."},
                     "categoria": {"type": ["string", "null"], "description": "Só para despesa: nome exato de uma categoria da lista. null para receita."},
                     "safraUuid": {"type": ["string", "null"], "description": "uuid de uma safra da lista, ou null se precisar perguntar."},
-                    "maquinaUuid": {"type": ["string", "null"], "description": "uuid de uma máquina da lista, só se o produtor citar uma máquina."}
+                    "maquinaUuid": {"type": ["string", "null"], "description": "uuid de uma máquina da lista, só se o produtor citar uma máquina."},
+                    "safraCitada": {"type": "boolean", "description": "true só se o produtor indicou a safra nesta conversa (cultura, talhão, ano, propriedade ou escolha da lista); false se você escolheu sozinho."}
                   },
-                  "required": ["tipo", "valor", "data", "descricao", "categoria", "safraUuid", "maquinaUuid"]
+                  "required": ["tipo", "valor", "data", "descricao", "categoria", "safraUuid", "maquinaUuid", "safraCitada"]
                 }
               },
               "consulta": {
