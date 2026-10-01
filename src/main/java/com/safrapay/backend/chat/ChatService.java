@@ -147,7 +147,7 @@ public class ChatService {
           .append("Você não grava nada: o app mostra a sua proposta e o produtor confirma.\n\n")
           .append("Hoje é ").append(hoje).append(" (").append(DIAS_SEMANA[hoje.getDayOfWeek().getValue() - 1]).append("). ")
           .append("Converta datas relativas (\"ontem\", \"sexta passada\", \"dia 15\") para AAAA-MM-DD com base nisso. ")
-          .append("Se o produtor não disser a data, use hoje.\n\n")
+          .append("Se o produtor não disser a data, use hoje — NUNCA pergunte a data.\n\n")
           .append("Regras:\n")
           .append("- Valores em reais. Entenda formas como \"200 conto\", \"2 mil\", \"1,5 mil\", \"R$ 1.234,56\". O valor é sempre positivo.\n")
           .append("- Despesa: a categoria é obrigatória e deve ser exatamente um nome desta lista: ")
@@ -162,11 +162,14 @@ public class ChatService {
           .append("- Máquina: só preencha maquinaUuid se o produtor citar uma máquina da lista; senão null. Receita nunca tem máquina.\n")
           .append("- Descrição: curta e clara, com a primeira letra maiúscula (ex.: \"Diesel S10\", \"Venda de 400 sacas de soja\").\n")
           .append("- Uma mensagem pode ter mais de um lançamento: devolva todos.\n")
+          .append("- Sempre que o produtor estiver registrando algo, inclua o lançamento em lancamentos MESMO INCOMPLETO, ")
+          .append("com null nos campos que não souber (ex.: safraUuid null quando precisar perguntar a safra). ")
+          .append("Nunca devolva lancamentos vazio quando houver um lançamento em andamento na conversa.\n")
           .append("- Se o produtor corrigir algo (ex.: \"não, foi 250\"), devolva a proposta inteira de novo, já corrigida.\n")
           .append("- Se a mensagem não for um lançamento (dúvida, saudação, outro assunto), use status SEM_LANCAMENTO e responda em uma ou duas frases, ")
           .append("explicando que você ajuda a registrar despesas e receitas. Não dê conselhos financeiros, jurídicos ou agronômicos.\n")
           .append("- status: PROPOSTA quando todos os lançamentos estiverem completos; PRECISA_INFORMACAO quando faltar algo ")
-          .append("(pergunte só o que falta, de forma objetiva); SEM_LANCAMENTO quando não houver lançamento.\n")
+          .append("(pergunte só o que falta, de forma objetiva, de preferência uma coisa por vez); SEM_LANCAMENTO quando não houver lançamento.\n")
           .append("- resposta: português do Brasil, simples e curta, como numa conversa de WhatsApp. Em PROPOSTA, resuma o que entendeu ")
           .append("e peça confirmação (ex.: \"Entendi: despesa de R$ 200,00 com Combustível em 30/09, safra Soja 2025/2026. Confirma?\").\n\n");
 
@@ -263,8 +266,14 @@ public class ChatService {
             resp.getLancamentos().add(l);
         }
 
-        if (resp.getLancamentos().isEmpty()) resp.setStatus(SEM_LANCAMENTO);
-        else resp.setStatus(faltaAlgo ? PRECISA_INFORMACAO : PROPOSTA);
+        if (resp.getLancamentos().isEmpty()) {
+            // A IA pode estar no meio de uma pergunta sem ter devolvido o lançamento ainda:
+            // respeita o PRECISA_INFORMACAO dela (o app só mostra a pergunta).
+            String statusIa = saida.path("status").asText("");
+            resp.setStatus(PRECISA_INFORMACAO.equals(statusIa) ? PRECISA_INFORMACAO : SEM_LANCAMENTO);
+        } else {
+            resp.setStatus(faltaAlgo ? PRECISA_INFORMACAO : PROPOSTA);
+        }
         return resp;
     }
 
