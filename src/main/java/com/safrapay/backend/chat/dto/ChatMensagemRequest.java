@@ -17,6 +17,13 @@ public class ChatMensagemRequest {
     /** Data de hoje no aparelho (yyyy-MM-dd), pra resolver "ontem", "sexta passada"... */
     private String hoje;
     private Contexto contexto;
+    /**
+     * Foto opcional (etapa 2, 01/10/2026): nota fiscal, cupom, recibo... Vai junto
+     * com a ÚLTIMA mensagem do produtor (o texto pode ser vazio). Fotos de
+     * mensagens anteriores não são reenviadas — no histórico, o app manda só o
+     * texto (ex.: "[foto]").
+     */
+    private Imagem imagem;
 
     public List<Mensagem> getMensagens() { return mensagens; }
     public void setMensagens(List<Mensagem> mensagens) { this.mensagens = mensagens; }
@@ -24,6 +31,20 @@ public class ChatMensagemRequest {
     public void setHoje(String hoje) { this.hoje = hoje; }
     public Contexto getContexto() { return contexto; }
     public void setContexto(Contexto contexto) { this.contexto = contexto; }
+    public Imagem getImagem() { return imagem; }
+    public void setImagem(Imagem imagem) { this.imagem = imagem; }
+
+    public static class Imagem {
+        /** image/jpeg, image/png ou image/webp (o servidor confere pelos bytes). */
+        private String tipo;
+        /** Conteúdo em base64 (aceita também o prefixo "data:image/...;base64,"). */
+        private String base64;
+
+        public String getTipo() { return tipo; }
+        public void setTipo(String tipo) { this.tipo = tipo; }
+        public String getBase64() { return base64; }
+        public void setBase64(String base64) { this.base64 = base64; }
+    }
 
     public static class Mensagem {
         /** "usuario" ou "assistente". */

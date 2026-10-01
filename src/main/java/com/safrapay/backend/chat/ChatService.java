@@ -48,6 +48,8 @@ public class ChatService {
     private static final int MAX_MENSAGENS_HISTORICO = 20;
     private static final int MAX_ITENS_CONTEXTO = 300;
     private static final int MAX_DESCRICAO = 255;
+    /** Limite da foto depois de decodificada (a API aceita até ~5 MB por imagem). */
+    static final int MAX_BYTES_IMAGEM = 5 * 1024 * 1024;
     private static final String[] DIAS_SEMANA = {
         "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"
     };
@@ -71,6 +73,7 @@ public class ChatService {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Assistente de IA não configurado no servidor");
         }
         List<Map<String, Object>> mensagens = montarMensagens(req);
+        anexarImagem(mensagens, req.getImagem());
         LocalDate hoje = parseData(req.getHoje());
         if (hoje == null) hoje = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
         ChatMensagemRequest.Contexto ctx = req.getContexto() != null ? req.getContexto() : new ChatMensagemRequest.Contexto();
@@ -110,9 +113,12 @@ public class ChatService {
      */
     List<Map<String, Object>> montarMensagens(ChatMensagemRequest req) {
         List<ChatMensagemRequest.Mensagem> historico = req.getMensagens();
-        if (historico == null || historico.isEmpty()) {
+        boolean temImagem = req.getImagem() != null && req.getImagem().getBase64() != null
+                && !req.getImagem().getBase64().isBlank();
+        if ((historico == null || historico.isEmpty()) && !temImagem) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nenhuma mensagem enviada");
         }
+        if (historico == null) historico = new ArrayList<>();
         if (historico.size() > MAX_MENSAGENS_HISTORICO) {
             historico = historico.subList(historico.size() - MAX_MENSAGENS_HISTORICO, historico.size());
         }
@@ -134,10 +140,64 @@ public class ChatService {
                 saida.add(nova);
             }
         }
+        if (temImagem && (saida.isEmpty() || !"user".equals(saida.get(saida.size() - 1).get("role")))) {
+            // só foto, sem texto: cria a mensagem do produtor que vai carregar a imagem
+            Map<String, Object> nova = new HashMap<>();
+            nova.put("role", "user");
+            nova.put("content", "O produtor enviou esta foto.");
+            saida.add(nova);
+        }
         if (saida.isEmpty() || !"user".equals(saida.get(saida.size() - 1).get("role"))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A última mensagem precisa ser do produtor");
         }
         return saida;
+    }
+
+    /**
+     * Valida a foto (tamanho e tipo pelos bytes, sem confiar no que o app diz) e
+     * transforma a última mensagem do produtor em [imagem, texto] no formato da API.
+     */
+    void anexarImagem(List<Map<String, Object>> mensagens, ChatMensagemRequest.Imagem imagem) {
+        if (imagem == null || imagem.getBase64() == null || imagem.getBase64().isBlank()) return;
+        String b64 = imagem.getBase64().trim();
+        int virgula = b64.indexOf(',');
+        if (b64.startsWith("data:") && virgula > 0) b64 = b64.substring(virgula + 1);
+        byte[] bytes;
+        try {
+            bytes = java.util.Base64.getMimeDecoder().decode(b64);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Imagem inválida (base64)");
+        }
+        if (bytes.length == 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Imagem vazia");
+        if (bytes.length > MAX_BYTES_IMAGEM) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Imagem maior que 5 MB");
+        }
+        String tipo = detectarTipo(bytes);
+        if (tipo == null) {
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Formato de imagem não suportado (use JPEG, PNG ou WebP)");
+        }
+
+        Map<String, Object> ultima = mensagens.get(mensagens.size() - 1);
+        Map<String, Object> fonte = new LinkedHashMap<>();
+        fonte.put("type", "base64");
+        fonte.put("media_type", tipo);
+        fonte.put("data", java.util.Base64.getEncoder().encodeToString(bytes));
+        Map<String, Object> blocoImagem = new LinkedHashMap<>();
+        blocoImagem.put("type", "image");
+        blocoImagem.put("source", fonte);
+        Map<String, Object> blocoTexto = new LinkedHashMap<>();
+        blocoTexto.put("type", "text");
+        blocoTexto.put("text", String.valueOf(ultima.get("content")));
+        ultima.put("content", List.of(blocoImagem, blocoTexto));
+    }
+
+    /** Identifica o formato pelos primeiros bytes (assinatura do arquivo). */
+    static String detectarTipo(byte[] b) {
+        if (b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF) return "image/jpeg";
+        if (b.length >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G') return "image/png";
+        if (b.length >= 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
+                && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P') return "image/webp";
+        return null;
     }
 
     String promptSistema(LocalDate hoje, ChatMensagemRequest.Contexto ctx) {
@@ -166,6 +226,11 @@ public class ChatService {
           .append("com null nos campos que não souber (ex.: safraUuid null quando precisar perguntar a safra). ")
           .append("Nunca devolva lancamentos vazio quando houver um lançamento em andamento na conversa.\n")
           .append("- Se o produtor corrigir algo (ex.: \"não, foi 250\"), devolva a proposta inteira de novo, já corrigida.\n")
+          .append("- FOTO: se vier uma foto de nota fiscal, cupom, recibo ou comprovante, leia o valor TOTAL (não os itens um a um, ")
+          .append("a menos que o produtor peça), a data de emissão (use a data do documento, convertida para AAAA-MM-DD), o fornecedor e o que foi comprado; ")
+          .append("monte uma despesa com descrição curta (ex.: \"Adubo NPK - Agropecuária Silva\") e escolha a categoria pelos itens. ")
+          .append("Nota de venda da produção (o produtor vendendo) é receita. Se a foto estiver ilegível ou cortada, peça outra foto. ")
+          .append("Se a foto não for um documento com valor (ex.: máquina quebrada), use SEM_LANCAMENTO e explique que, para lançar, precisa do valor.\n")
           .append("- Se a mensagem não for um lançamento (dúvida, saudação, outro assunto), use status SEM_LANCAMENTO e responda em uma ou duas frases, ")
           .append("explicando que você ajuda a registrar despesas e receitas. Não dê conselhos financeiros, jurídicos ou agronômicos.\n")
           .append("- status: PROPOSTA quando todos os lançamentos estiverem completos; PRECISA_INFORMACAO quando faltar algo ")
