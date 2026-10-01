@@ -54,6 +54,8 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/api/auth/registrar",
                                 "/api/auth/login",
+                                "/api/auth/refresh",
+                                "/api/auth/logout",
                                 "/api/auth/confirmar-email",
                                 "/api/auth/esqueci-senha",
                                 "/api/auth/redefinir-senha",
