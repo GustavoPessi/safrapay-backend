@@ -565,8 +565,12 @@ public class ChatService {
             if (safraEscolhidaPelaIa) {
                 resp.setResposta(perguntaSafra(resp.getLancamentos(), ativas));
                 resp.setSugestoes(sugestoesDeSafra(ctx));
-            } else if (faltaSafra && resp.getSugestoes().isEmpty()) {
-                resp.setSugestoes(sugestoesDeSafra(ctx));
+            } else if (faltaSafra) {
+                if (resp.getSugestoes().isEmpty()) resp.setSugestoes(sugestoesDeSafra(ctx));
+                // A IA às vezes pergunta "qual safra?" sem listar: completa com a lista numerada.
+                if (ativas.size() >= 2 && !resp.getResposta().contains("1)")) {
+                    resp.setResposta(resp.getResposta().trim() + listaNumerada(ativas));
+                }
             }
         } else if (CONSULTA.equals(statusIa)) {
             ChatMensagemResponse.Consulta consulta = validarConsulta(saida.path("consulta"), ctx, categorias, safras, maquinas, hoje);
@@ -650,9 +654,15 @@ public class ChatService {
         } else {
             sb.append("Entendi ").append(lancamentos.size()).append(" lançamentos. ");
         }
-        sb.append("Em qual safra eu lanço?");
+        sb.append("Em qual safra eu lanço?").append(listaNumerada(ativas));
+        return sb.toString();
+    }
+
+    /** "\n1) Soja 2025/2026 • Talhão A\n2) ..." (até 10 safras). */
+    static String listaNumerada(List<ChatMensagemRequest.Safra> safras) {
+        StringBuilder sb = new StringBuilder();
         int i = 0;
-        for (ChatMensagemRequest.Safra s : ativas) {
+        for (ChatMensagemRequest.Safra s : safras) {
             if (++i > 10) break;
             sb.append('\n').append(i).append(") ").append(rotuloSafra(s));
         }
