@@ -39,7 +39,7 @@ public class AnthropicClient {
                            @Value("${ia.max-tokens:1024}") int maxTokens) {
         SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
         fabrica.setConnectTimeout(10_000);
-        fabrica.setReadTimeout(60_000);
+        fabrica.setReadTimeout(150_000); // arquivo com muitos lançamentos pode levar ~1 min
         this.http = builder.requestFactory(fabrica).build();
         this.apiKey = apiKey;
         this.modelo = modelo;
@@ -61,9 +61,15 @@ public class AnthropicClient {
      */
     public JsonNode chamarComFerramenta(String sistema, List<Map<String, Object>> mensagens,
                                        Map<String, Object> ferramenta) {
+        return chamarComFerramenta(sistema, mensagens, ferramenta, maxTokens);
+    }
+
+    /** Igual ao de cima, com limite de tokens de saída próprio (ex.: arquivo com muitos lançamentos). */
+    public JsonNode chamarComFerramenta(String sistema, List<Map<String, Object>> mensagens,
+                                       Map<String, Object> ferramenta, int limiteTokens) {
         Map<String, Object> corpo = new LinkedHashMap<>();
         corpo.put("model", modelo);
-        corpo.put("max_tokens", maxTokens);
+        corpo.put("max_tokens", limiteTokens);
         corpo.put("system", sistema);
         corpo.put("messages", mensagens);
         corpo.put("tools", List.of(ferramenta));

@@ -24,6 +24,13 @@ public class ChatMensagemRequest {
      * texto (ex.: "[foto]").
      */
     private Imagem imagem;
+    /**
+     * Arquivo opcional (etapa 3, 01/10/2026): planilha .xlsx, .csv ou bloco de
+     * notas .txt com vários lançamentos. Vai junto com a última mensagem do
+     * produtor (texto opcional, ex.: "tudo da safra da soja"). Não pode vir
+     * junto com "imagem".
+     */
+    private Arquivo arquivo;
 
     public List<Mensagem> getMensagens() { return mensagens; }
     public void setMensagens(List<Mensagem> mensagens) { this.mensagens = mensagens; }
@@ -33,6 +40,20 @@ public class ChatMensagemRequest {
     public void setContexto(Contexto contexto) { this.contexto = contexto; }
     public Imagem getImagem() { return imagem; }
     public void setImagem(Imagem imagem) { this.imagem = imagem; }
+    public Arquivo getArquivo() { return arquivo; }
+    public void setArquivo(Arquivo arquivo) { this.arquivo = arquivo; }
+
+    public static class Arquivo {
+        /** Nome original, com extensão (ex.: "gastos-setembro.xlsx"). */
+        private String nome;
+        /** Conteúdo em base64. */
+        private String base64;
+
+        public String getNome() { return nome; }
+        public void setNome(String nome) { this.nome = nome; }
+        public String getBase64() { return base64; }
+        public void setBase64(String base64) { this.base64 = base64; }
+    }
 
     public static class Imagem {
         /** image/jpeg, image/png ou image/webp (o servidor confere pelos bytes). */
