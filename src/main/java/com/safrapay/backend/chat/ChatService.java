@@ -50,6 +50,10 @@ public class ChatService {
     private static final int MAX_DESCRICAO = 255;
     /** Limite da foto depois de decodificada (a API aceita até ~5 MB por imagem). */
     static final int MAX_BYTES_IMAGEM = 5 * 1024 * 1024;
+    /** Limite do arquivo (planilha/CSV/texto) antes de ler. */
+    static final int MAX_BYTES_ARQUIVO = 2 * 1024 * 1024;
+    /** Máximo de lançamentos devolvidos numa resposta (arquivo grande). */
+    static final int MAX_LANCAMENTOS = 200;
     private static final String[] DIAS_SEMANA = {
         "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"
     };
@@ -57,10 +61,13 @@ public class ChatService {
     private final AnthropicClient ia;
     private final LimiteDiarioIa limite;
     private final Map<String, Object> ferramenta;
+    private final int maxTokensArquivo;
 
-    public ChatService(AnthropicClient ia, LimiteDiarioIa limite, ObjectMapper mapper) {
+    public ChatService(AnthropicClient ia, LimiteDiarioIa limite, ObjectMapper mapper,
+                       @org.springframework.beans.factory.annotation.Value("${ia.max-tokens-arquivo:8192}") int maxTokensArquivo) {
         this.ia = ia;
         this.limite = limite;
+        this.maxTokensArquivo = maxTokensArquivo;
         try {
             this.ferramenta = mapper.readValue(FERRAMENTA_JSON, new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
@@ -72,8 +79,14 @@ public class ChatService {
         if (!ia.configurado()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Assistente de IA não configurado no servidor");
         }
+        boolean temImagem = req.getImagem() != null && req.getImagem().getBase64() != null && !req.getImagem().getBase64().isBlank();
+        boolean temArquivo = req.getArquivo() != null && req.getArquivo().getBase64() != null && !req.getArquivo().getBase64().isBlank();
+        if (temImagem && temArquivo) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Envie foto ou arquivo, não os dois na mesma mensagem");
+        }
         List<Map<String, Object>> mensagens = montarMensagens(req);
         anexarImagem(mensagens, req.getImagem());
+        LeitorArquivo.Conteudo arquivo = anexarArquivo(mensagens, req.getArquivo());
         LocalDate hoje = parseData(req.getHoje());
         if (hoje == null) hoje = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
         ChatMensagemRequest.Contexto ctx = req.getContexto() != null ? req.getContexto() : new ChatMensagemRequest.Contexto();
@@ -86,7 +99,9 @@ public class ChatService {
 
         JsonNode saida;
         try {
-            saida = ia.chamarComFerramenta(promptSistema(hoje, ctx), mensagens, ferramenta);
+            saida = arquivo == null
+                    ? ia.chamarComFerramenta(promptSistema(hoje, ctx), mensagens, ferramenta)
+                    : ia.chamarComFerramenta(promptSistema(hoje, ctx), mensagens, ferramenta, maxTokensArquivo);
         } catch (RestClientResponseException e) {
             limite.devolver(usuarioId);
             log.warn("API de IA respondeu {}: {}", e.getStatusCode().value(), resumir(e.getResponseBodyAsString()));
@@ -99,6 +114,10 @@ public class ChatService {
 
         ChatMensagemResponse resp = validar(saida, ctx);
         resp.setMensagensRestantesHoje(restantes);
+        if (arquivo != null && arquivo.truncado) {
+            resp.getAvisos().add("Arquivo grande: só as primeiras " + arquivo.linhasLidas
+                    + " linhas foram lidas. Divida o arquivo para lançar o restante.");
+        }
         return resp;
     }
 
@@ -113,8 +132,10 @@ public class ChatService {
      */
     List<Map<String, Object>> montarMensagens(ChatMensagemRequest req) {
         List<ChatMensagemRequest.Mensagem> historico = req.getMensagens();
-        boolean temImagem = req.getImagem() != null && req.getImagem().getBase64() != null
-                && !req.getImagem().getBase64().isBlank();
+        boolean temImagem = (req.getImagem() != null && req.getImagem().getBase64() != null
+                && !req.getImagem().getBase64().isBlank())
+                || (req.getArquivo() != null && req.getArquivo().getBase64() != null
+                && !req.getArquivo().getBase64().isBlank()); // qualquer anexo
         if ((historico == null || historico.isEmpty()) && !temImagem) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nenhuma mensagem enviada");
         }
@@ -144,7 +165,7 @@ public class ChatService {
             // só foto, sem texto: cria a mensagem do produtor que vai carregar a imagem
             Map<String, Object> nova = new HashMap<>();
             nova.put("role", "user");
-            nova.put("content", "O produtor enviou esta foto.");
+            nova.put("content", req.getArquivo() != null ? "O produtor enviou este arquivo." : "O produtor enviou esta foto.");
             saida.add(nova);
         }
         if (saida.isEmpty() || !"user".equals(saida.get(saida.size() - 1).get("role"))) {
@@ -191,6 +212,43 @@ public class ChatService {
         ultima.put("content", List.of(blocoImagem, blocoTexto));
     }
 
+    /**
+     * Lê o arquivo (planilha/CSV/texto) e cola o conteúdo, como texto, na última
+     * mensagem do produtor. Devolve o que foi lido (ou null se não houver arquivo).
+     */
+    LeitorArquivo.Conteudo anexarArquivo(List<Map<String, Object>> mensagens, ChatMensagemRequest.Arquivo arquivo) {
+        if (arquivo == null || arquivo.getBase64() == null || arquivo.getBase64().isBlank()) return null;
+        String b64 = arquivo.getBase64().trim();
+        int virgula = b64.indexOf(',');
+        if (b64.startsWith("data:") && virgula > 0) b64 = b64.substring(virgula + 1);
+        byte[] bytes;
+        try {
+            bytes = java.util.Base64.getMimeDecoder().decode(b64);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Arquivo inválido (base64)");
+        }
+        if (bytes.length == 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Arquivo vazio");
+        if (bytes.length > MAX_BYTES_ARQUIVO) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Arquivo maior que 2 MB");
+        }
+        LeitorArquivo.Conteudo conteudo;
+        try {
+            conteudo = LeitorArquivo.ler(arquivo.getNome(), bytes);
+        } catch (LeitorArquivo.FormatoNaoSuportado e) {
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
+        } catch (java.io.IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não foi possível ler o arquivo");
+        }
+        if (conteudo.texto.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O arquivo não tem conteúdo");
+
+        String nome = arquivo.getNome() == null ? "arquivo" : arquivo.getNome().replaceAll("[\\r\\n\"]", " ").trim();
+        Map<String, Object> ultima = mensagens.get(mensagens.size() - 1);
+        ultima.put("content", ultima.get("content") + "\n\nARQUIVO ANEXADO \"" + nome + "\" (" + conteudo.formato + ", "
+                + conteudo.linhasLidas + " linhas" + (conteudo.truncado ? ", cortado no limite de leitura" : "") + "):\n"
+                + "<<<INICIO DO ARQUIVO>>>\n" + conteudo.texto + "<<<FIM DO ARQUIVO>>>");
+        return conteudo;
+    }
+
     /** Identifica o formato pelos primeiros bytes (assinatura do arquivo). */
     static String detectarTipo(byte[] b) {
         if (b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF) return "image/jpeg";
@@ -231,6 +289,13 @@ public class ChatService {
           .append("monte uma despesa com descrição curta (ex.: \"Adubo NPK - Agropecuária Silva\") e escolha a categoria pelos itens. ")
           .append("Nota de venda da produção (o produtor vendendo) é receita. Se a foto estiver ilegível ou cortada, peça outra foto. ")
           .append("Se a foto não for um documento com valor (ex.: máquina quebrada), use SEM_LANCAMENTO e explique que, para lançar, precisa do valor.\n")
+          .append("- ARQUIVO: se vier um arquivo anexado (planilha, CSV ou bloco de notas), cada linha/registro que for um lançamento ")
+          .append("individual vira um item em lancamentos. Ignore cabeçalhos, totais, subtotais, saldos e linhas de resumo. ")
+          .append("Use as colunas do arquivo: tipo/sinal (valor negativo, \"saída\" ou \"débito\" = despesa; \"entrada\" ou \"crédito\" = receita), ")
+          .append("data (converta para AAAA-MM-DD; se a linha não tiver data, deixe null — em arquivo NÃO use a data de hoje), ")
+          .append("descrição, categoria, cultura/safra/talhão. Se o produtor disser no texto algo que vale para todos (ex.: \"tudo da soja\"), aplique a todos. ")
+          .append("No máximo " + MAX_LANCAMENTOS + " lançamentos. Na resposta NÃO liste item por item: resuma quantos lançamentos encontrou, ")
+          .append("quantas despesas e receitas e o total de cada, e diga o que falta (ex.: \"12 sem safra\") — o app mostra a lista para revisão.\n")
           .append("- Se a mensagem não for um lançamento (dúvida, saudação, outro assunto), use status SEM_LANCAMENTO e responda em uma ou duas frases, ")
           .append("explicando que você ajuda a registrar despesas e receitas. Não dê conselhos financeiros, jurídicos ou agronômicos.\n")
           .append("- status: PROPOSTA quando todos os lançamentos estiverem completos; PRECISA_INFORMACAO quando faltar algo ")
@@ -287,7 +352,9 @@ public class ChatService {
         resp.setResposta(texto.isEmpty() ? "Não entendi. Pode repetir?" : texto);
 
         boolean faltaAlgo = false;
+        int descartados = 0;
         for (JsonNode item : saida.path("lancamentos")) {
+            if (resp.getLancamentos().size() >= MAX_LANCAMENTOS) { descartados++; continue; }
             String tipo = item.path("tipo").asText("").toUpperCase(Locale.ROOT);
             if (!tipo.equals("DESPESA") && !tipo.equals("RECEITA")) continue;
             boolean despesa = tipo.equals("DESPESA");
@@ -331,6 +398,10 @@ public class ChatService {
             resp.getLancamentos().add(l);
         }
 
+        if (descartados > 0) {
+            resp.getAvisos().add("Só os primeiros " + MAX_LANCAMENTOS + " lançamentos foram considerados ("
+                    + descartados + " ficaram de fora). Envie o restante em outro arquivo.");
+        }
         if (resp.getLancamentos().isEmpty()) {
             // A IA pode estar no meio de uma pergunta sem ter devolvido o lançamento ainda:
             // respeita o PRECISA_INFORMACAO dela (o app só mostra a pergunta).

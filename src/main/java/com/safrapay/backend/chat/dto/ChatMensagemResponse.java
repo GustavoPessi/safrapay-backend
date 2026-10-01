@@ -18,6 +18,8 @@ public class ChatMensagemResponse {
     private List<LancamentoProposto> lancamentos = new ArrayList<>();
     /** Quantas mensagens o usuário ainda pode mandar hoje (limite diário de custo). */
     private Integer mensagensRestantesHoje;
+    /** Avisos pra mostrar ao produtor (ex.: arquivo grande, só parte foi lida). Pode vir vazio. */
+    private List<String> avisos = new ArrayList<>();
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
@@ -27,6 +29,8 @@ public class ChatMensagemResponse {
     public void setLancamentos(List<LancamentoProposto> lancamentos) { this.lancamentos = lancamentos; }
     public Integer getMensagensRestantesHoje() { return mensagensRestantesHoje; }
     public void setMensagensRestantesHoje(Integer mensagensRestantesHoje) { this.mensagensRestantesHoje = mensagensRestantesHoje; }
+    public List<String> getAvisos() { return avisos; }
+    public void setAvisos(List<String> avisos) { this.avisos = avisos; }
 
     public static class LancamentoProposto {
         /** "DESPESA" ou "RECEITA". */
