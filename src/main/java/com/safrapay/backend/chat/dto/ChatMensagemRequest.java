@@ -26,6 +26,12 @@ public class ChatMensagemRequest {
      */
     private Imagem imagem;
     /**
+     * Várias fotos na mesma mensagem (02/10/2026): até 5, cada uma com o
+     * "numero" que o app deu a ela na conversa (Foto 1, Foto 2...). Pode vir no
+     * lugar de "imagem" ou junto com ela.
+     */
+    private List<Imagem> imagens;
+    /**
      * Arquivo opcional (etapa 3, 01/10/2026): planilha .xlsx, .csv ou bloco de
      * notas .txt com vários lançamentos. Vai junto com a última mensagem do
      * produtor (texto opcional, ex.: "tudo da safra da soja"). Não pode vir
@@ -47,6 +53,8 @@ public class ChatMensagemRequest {
     public void setContexto(Contexto contexto) { this.contexto = contexto; }
     public Imagem getImagem() { return imagem; }
     public void setImagem(Imagem imagem) { this.imagem = imagem; }
+    public List<Imagem> getImagens() { return imagens; }
+    public void setImagens(List<Imagem> imagens) { this.imagens = imagens; }
     public Arquivo getArquivo() { return arquivo; }
     public void setArquivo(Arquivo arquivo) { this.arquivo = arquivo; }
     public Audio getAudio() { return audio; }
@@ -85,11 +93,15 @@ public class ChatMensagemRequest {
         private String tipo;
         /** Conteúdo em base64 (aceita também o prefixo "data:image/...;base64,"). */
         private String base64;
+        /** Número da foto na conversa (Foto 1, Foto 2...), dado pelo app. Opcional. */
+        private Integer numero;
 
         public String getTipo() { return tipo; }
         public void setTipo(String tipo) { this.tipo = tipo; }
         public String getBase64() { return base64; }
         public void setBase64(String base64) { this.base64 = base64; }
+        public Integer getNumero() { return numero; }
+        public void setNumero(Integer numero) { this.numero = numero; }
     }
 
     public static class Mensagem {

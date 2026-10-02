@@ -119,6 +119,8 @@ public class ChatMensagemResponse {
         private String maquinaUuid;
         /** true = veio da foto de nota/recibo enviada na conversa: o app guarda a foto como comprovante SÓ neste lançamento. */
         private boolean doComprovante;
+        /** Número da foto (Foto N) de onde veio o lançamento — o app guarda ESSA foto como comprovante. null = nenhuma. */
+        private Integer foto;
         /** Campos que faltam pra gravar: valor, data, descricao, categoria, safra. Vazio = completo. */
         private List<String> camposFaltando = new ArrayList<>();
 
@@ -138,6 +140,8 @@ public class ChatMensagemResponse {
         public void setMaquinaUuid(String maquinaUuid) { this.maquinaUuid = maquinaUuid; }
         public boolean isDoComprovante() { return doComprovante; }
         public void setDoComprovante(boolean doComprovante) { this.doComprovante = doComprovante; }
+        public Integer getFoto() { return foto; }
+        public void setFoto(Integer foto) { this.foto = foto; }
         public List<String> getCamposFaltando() { return camposFaltando; }
         public void setCamposFaltando(List<String> camposFaltando) { this.camposFaltando = camposFaltando; }
     }

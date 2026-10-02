@@ -62,6 +62,10 @@ public class ChatService {
     private static final int MAX_DESCRICAO = 255;
     /** Limite da foto depois de decodificada (a API aceita até ~5 MB por imagem). */
     static final int MAX_BYTES_IMAGEM = 5 * 1024 * 1024;
+    /** Fotos por mensagem (várias notas de uma vez). */
+    static final int MAX_IMAGENS = 5;
+    /** Soma das fotos de uma mensagem (o Nginx aceita 10 MB de corpo; base64 aumenta ~33%). */
+    static final int MAX_BYTES_IMAGENS_TOTAL = 7 * 1024 * 1024;
     /** Limite do arquivo (planilha/CSV/texto) antes de ler. */
     static final int MAX_BYTES_ARQUIVO = 2 * 1024 * 1024;
     /** Limite da mensagem de voz depois de decodificada (2 min em Opus/AAC fica bem abaixo). */
@@ -99,14 +103,15 @@ public class ChatService {
         if (!ia.configurado()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Assistente de IA não configurado no servidor");
         }
-        boolean temImagem = req.getImagem() != null && req.getImagem().getBase64() != null && !req.getImagem().getBase64().isBlank();
+        List<ChatMensagemRequest.Imagem> imagens = imagensDoPedido(req);
+        boolean temImagem = !imagens.isEmpty();
         boolean temArquivo = req.getArquivo() != null && req.getArquivo().getBase64() != null && !req.getArquivo().getBase64().isBlank();
         boolean temAudio = req.getAudio() != null && req.getAudio().getBase64() != null && !req.getAudio().getBase64().isBlank();
         if ((temImagem ? 1 : 0) + (temArquivo ? 1 : 0) + (temAudio ? 1 : 0) > 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Envie um anexo por vez (foto, arquivo ou áudio)");
         }
         List<Map<String, Object>> mensagens = montarMensagens(req);
-        anexarImagem(mensagens, req.getImagem());
+        java.util.Set<Integer> fotosDoPedido = anexarImagens(mensagens, imagens);
         LeitorArquivo.Conteudo arquivo = anexarArquivo(mensagens, req.getArquivo());
         byte[] audio = temAudio ? decodificarAudio(req.getAudio()) : null;
         TranscricaoAudio.Formato formatoAudio = audio == null ? null : TranscricaoAudio.detectarFormato(audio);
@@ -134,7 +139,7 @@ public class ChatService {
 
         JsonNode saida;
         try {
-            saida = arquivo == null
+            saida = arquivo == null && imagens.size() <= 1
                     ? ia.chamarComFerramenta(promptSistema(hoje, ctx), mensagens, ferramenta)
                     : ia.chamarComFerramenta(promptSistema(hoje, ctx), mensagens, ferramenta, maxTokensArquivo);
         } catch (RestClientResponseException e) {
@@ -147,7 +152,7 @@ public class ChatService {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Falha no serviço de IA");
         }
 
-        ChatMensagemResponse resp = validar(saida, ctx, hoje);
+        ChatMensagemResponse resp = validar(saida, ctx, hoje, fotosDoPedido);
         resp.setMensagensRestantesHoje(restantes);
         resp.setTranscricao(textoVoz);
         if (arquivo != null && arquivo.truncado()) {
@@ -168,8 +173,8 @@ public class ChatService {
      */
     List<Map<String, Object>> montarMensagens(ChatMensagemRequest req) {
         List<ChatMensagemRequest.Mensagem> historico = req.getMensagens();
-        boolean temImagem = (req.getImagem() != null && req.getImagem().getBase64() != null
-                && !req.getImagem().getBase64().isBlank())
+        int qtdFotos = imagensDoPedido(req).size();
+        boolean temImagem = qtdFotos > 0
                 || (req.getArquivo() != null && req.getArquivo().getBase64() != null
                 && !req.getArquivo().getBase64().isBlank())
                 || (req.getAudio() != null && req.getAudio().getBase64() != null
@@ -204,7 +209,8 @@ public class ChatService {
             Map<String, Object> nova = new HashMap<>();
             nova.put("role", "user");
             nova.put("content", req.getAudio() != null && req.getAudio().getBase64() != null ? MARCADOR_VOZ
-                    : req.getArquivo() != null ? "O produtor enviou este arquivo." : "O produtor enviou esta foto.");
+                    : req.getArquivo() != null && req.getArquivo().getBase64() != null ? "O produtor enviou este arquivo."
+                    : qtdFotos > 1 ? "O produtor enviou " + qtdFotos + " fotos." : "O produtor enviou esta foto.");
             saida.add(nova);
         }
         if (saida.isEmpty() || !"user".equals(saida.get(saida.size() - 1).get("role"))) {
@@ -213,12 +219,66 @@ public class ChatService {
         return saida;
     }
 
-    /**
-     * Valida a foto (tamanho e tipo pelos bytes, sem confiar no que o app diz) e
-     * transforma a última mensagem do produtor em [imagem, texto] no formato da API.
-     */
+    /** Junta "imagem" (uma) e "imagens" (várias) do pedido, ignorando as vazias. */
+    static List<ChatMensagemRequest.Imagem> imagensDoPedido(ChatMensagemRequest req) {
+        List<ChatMensagemRequest.Imagem> lista = new ArrayList<>();
+        if (req.getImagem() != null) lista.add(req.getImagem());
+        if (req.getImagens() != null) lista.addAll(req.getImagens());
+        lista.removeIf(i -> i == null || i.getBase64() == null || i.getBase64().isBlank());
+        return lista;
+    }
+
+    /** Compatível com o app antigo: uma foto só. */
     void anexarImagem(List<Map<String, Object>> mensagens, ChatMensagemRequest.Imagem imagem) {
-        if (imagem == null || imagem.getBase64() == null || imagem.getBase64().isBlank()) return;
+        anexarImagens(mensagens, imagem == null ? List.of() : List.of(imagem));
+    }
+
+    /**
+     * Valida as fotos (quantidade, tamanho e tipo pelos bytes) e transforma a última
+     * mensagem do produtor em [rótulo "Foto N", imagem, ..., texto] no formato da API.
+     * Com uma foto só e sem número, não põe rótulo (igual ao comportamento antigo).
+     *
+     * @return os números das fotos deste pedido (pra amarrar lançamento ↔ foto)
+     */
+    java.util.Set<Integer> anexarImagens(List<Map<String, Object>> mensagens, List<ChatMensagemRequest.Imagem> imagens) {
+        java.util.Set<Integer> numeros = new java.util.LinkedHashSet<>();
+        if (imagens == null || imagens.isEmpty()) return numeros;
+        if (imagens.size() > MAX_IMAGENS) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Envie até " + MAX_IMAGENS + " fotos por mensagem");
+        }
+        boolean rotular = imagens.size() > 1 || imagens.get(0).getNumero() != null;
+        List<Object> blocos = new ArrayList<>();
+        long total = 0;
+        for (int i = 0; i < imagens.size(); i++) {
+            ChatMensagemRequest.Imagem imagem = imagens.get(i);
+            Integer n = imagem.getNumero();
+            int numero = (n != null && n > 0 && n < 1000 && !numeros.contains(n)) ? n : proximoLivre(numeros, i + 1);
+            numeros.add(numero);
+            Map<String, Object> blocoImagem = blocoImagem(imagem);
+            total += ((String) ((Map<?, ?>) blocoImagem.get("source")).get("data")).length() * 3L / 4;
+            if (total > MAX_BYTES_IMAGENS_TOTAL) {
+                throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Fotos grandes demais para uma mensagem só (máximo 7 MB no total)");
+            }
+            if (rotular) blocos.add(Map.of("type", "text", "text", "Foto " + numero + ":"));
+            blocos.add(blocoImagem);
+        }
+        Map<String, Object> ultima = mensagens.get(mensagens.size() - 1);
+        Map<String, Object> blocoTexto = new LinkedHashMap<>();
+        blocoTexto.put("type", "text");
+        blocoTexto.put("text", String.valueOf(ultima.get("content")));
+        blocos.add(blocoTexto);
+        ultima.put("content", blocos);
+        return numeros;
+    }
+
+    private static int proximoLivre(java.util.Set<Integer> usados, int inicio) {
+        int n = inicio;
+        while (usados.contains(n)) n++;
+        return n;
+    }
+
+    /** Valida uma foto (tamanho e tipo pelos bytes, sem confiar no que o app diz) e monta o bloco da API. */
+    private Map<String, Object> blocoImagem(ChatMensagemRequest.Imagem imagem) {
         String b64 = imagem.getBase64().trim();
         int virgula = b64.indexOf(',');
         if (b64.startsWith("data:") && virgula > 0) b64 = b64.substring(virgula + 1);
@@ -237,7 +297,6 @@ public class ChatService {
             throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Formato de imagem não suportado (use JPEG, PNG ou WebP)");
         }
 
-        Map<String, Object> ultima = mensagens.get(mensagens.size() - 1);
         Map<String, Object> fonte = new LinkedHashMap<>();
         fonte.put("type", "base64");
         fonte.put("media_type", tipo);
@@ -245,10 +304,7 @@ public class ChatService {
         Map<String, Object> blocoImagem = new LinkedHashMap<>();
         blocoImagem.put("type", "image");
         blocoImagem.put("source", fonte);
-        Map<String, Object> blocoTexto = new LinkedHashMap<>();
-        blocoTexto.put("type", "text");
-        blocoTexto.put("text", String.valueOf(ultima.get("content")));
-        ultima.put("content", List.of(blocoImagem, blocoTexto));
+        return blocoImagem;
     }
 
     /**
@@ -452,7 +508,11 @@ public class ChatService {
           .append("(ex.: \"Adubo NPK - Agropecuária Silva\", \"Pimenta - Centro de Jardinagem Junkes\"; nunca só uma categoria genérica), ")
           .append("para o produtor achar depois, e escolha a categoria pelos itens. Marque doComprovante = true SÓ nos lançamentos que vieram da foto ")
           .append("(o app guarda a foto como comprovante neles), inclusive nas mensagens seguintes enquanto esse lançamento estiver em aberto; ")
-          .append("nos demais, false. Se a data do documento for antiga (mais de 6 meses antes de hoje ou antes do início da safra escolhida), ")
+          .append("nos demais, false. Cada foto pode vir identificada como \"Foto N:\"; preencha foto com esse N no lançamento que saiu dela ")
+          .append("(sem rótulo, use 1) e repita o mesmo N nas mensagens seguintes enquanto ele estiver em aberto — no histórico, \"[Foto N]\" ")
+          .append("na mensagem do produtor indica uma foto que ele já mandou. Várias fotos = em geral uma nota por foto, cada uma um lançamento separado ")
+          .append("(a não ser que sejam partes do mesmo documento). Nos lançamentos que não vieram de foto, foto = null. ")
+          .append("Se a data do documento for antiga (mais de 6 meses antes de hoje ou antes do início da safra escolhida), ")
           .append("mantenha a data do documento, mas destaque-a na resposta para o produtor conferir. ")
           .append("Nota de venda da produção (o produtor vendendo) é receita. Se a foto estiver ilegível ou cortada, peça outra foto. ")
           .append("Se a foto não for um documento com valor (ex.: máquina quebrada), use SEM_LANCAMENTO e explique que, para lançar, precisa do valor.\n")
@@ -617,6 +677,15 @@ public class ChatService {
     }
 
     ChatMensagemResponse validar(JsonNode saida, ChatMensagemRequest.Contexto ctx, LocalDate hoje) {
+        return validar(saida, ctx, hoje, java.util.Set.of());
+    }
+
+    /**
+     * @param fotosDoPedido números das fotos que vieram nesta mensagem; com uma só,
+     *                      um lançamento marcado doComprovante sem número fica com ela
+     */
+    ChatMensagemResponse validar(JsonNode saida, ChatMensagemRequest.Contexto ctx, LocalDate hoje,
+                                 java.util.Set<Integer> fotosDoPedido) {
         Map<String, String> categorias = new HashMap<>(); // minúsculo -> nome oficial
         for (String c : limitar(ctx.getCategorias())) {
             if (c != null && !c.isBlank()) categorias.put(c.trim().toLowerCase(Locale.ROOT), c.trim());
@@ -690,7 +759,12 @@ public class ChatService {
                 faltaSafra = true;
             }
 
-            l.setDoComprovante(item.path("doComprovante").asBoolean(false));
+            boolean doComprovante = item.path("doComprovante").asBoolean(false);
+            Integer foto = item.path("foto").canConvertToInt() && item.path("foto").asInt() > 0 && item.path("foto").asInt() < 1000
+                    ? item.path("foto").asInt() : null;
+            if (foto == null && doComprovante && fotosDoPedido.size() == 1) foto = fotosDoPedido.iterator().next();
+            l.setFoto(foto);
+            l.setDoComprovante(doComprovante || foto != null);
             l.setCamposFaltando(faltando);
             if (!faltando.isEmpty()) faltaAlgo = true;
             resp.getLancamentos().add(l);
@@ -944,9 +1018,10 @@ public class ChatService {
                     "safraUuid": {"type": ["string", "null"], "description": "uuid de uma safra da lista, ou null se precisar perguntar."},
                     "maquinaUuid": {"type": ["string", "null"], "description": "uuid de uma máquina da lista, só se o produtor citar uma máquina."},
                     "doComprovante": {"type": "boolean", "description": "true só se este lançamento veio da foto de nota/recibo enviada na conversa (o app guarda a foto como comprovante nele)."},
+                    "foto": {"type": ["integer", "null"], "description": "Número N da foto (rótulo Foto N) de onde veio o lançamento; null se não veio de foto."},
                     "safraCitada": {"type": "boolean", "description": "true só se o produtor indicou a safra nesta conversa (cultura, talhão, ano, propriedade ou escolha da lista); false se você escolheu sozinho."}
                   },
-                  "required": ["tipo", "valor", "data", "descricao", "categoria", "safraUuid", "maquinaUuid", "safraCitada", "doComprovante"]
+                  "required": ["tipo", "valor", "data", "descricao", "categoria", "safraUuid", "maquinaUuid", "safraCitada", "doComprovante", "foto"]
                 }
               },
               "consulta": {
