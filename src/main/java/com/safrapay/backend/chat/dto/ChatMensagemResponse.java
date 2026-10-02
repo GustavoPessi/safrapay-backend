@@ -28,6 +28,8 @@ public class ChatMensagemResponse {
     private Consulta consulta;
     /** Respostas rápidas (0 a 5, até 60 caracteres) que o app mostra como botões. */
     private List<String> sugestoes = new ArrayList<>();
+    /** Texto da mensagem de voz, quando o pedido trouxe "audio" (o app mostra na bolha). */
+    private String transcricao;
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
@@ -43,6 +45,8 @@ public class ChatMensagemResponse {
     public void setConsulta(Consulta consulta) { this.consulta = consulta; }
     public List<String> getSugestoes() { return sugestoes; }
     public void setSugestoes(List<String> sugestoes) { this.sugestoes = sugestoes; }
+    public String getTranscricao() { return transcricao; }
+    public void setTranscricao(String transcricao) { this.transcricao = transcricao; }
 
     /**
      * Pergunta estruturada (contrato v2). A IA só monta os filtros; o app executa

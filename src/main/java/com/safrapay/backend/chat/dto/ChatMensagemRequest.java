@@ -32,6 +32,12 @@ public class ChatMensagemRequest {
      * junto com "imagem".
      */
     private Arquivo arquivo;
+    /**
+     * Mensagem de voz opcional (02/10/2026): vai com a ÚLTIMA mensagem, cujo texto
+     * chega como "(mensagem de voz)" e é trocado pela transcrição. Não pode vir
+     * junto com "imagem" nem "arquivo".
+     */
+    private Audio audio;
 
     public List<Mensagem> getMensagens() { return mensagens; }
     public void setMensagens(List<Mensagem> mensagens) { this.mensagens = mensagens; }
@@ -43,6 +49,24 @@ public class ChatMensagemRequest {
     public void setImagem(Imagem imagem) { this.imagem = imagem; }
     public Arquivo getArquivo() { return arquivo; }
     public void setArquivo(Arquivo arquivo) { this.arquivo = arquivo; }
+    public Audio getAudio() { return audio; }
+    public void setAudio(Audio audio) { this.audio = audio; }
+
+    public static class Audio {
+        /** audio/ogg (Opus), audio/webm, audio/mp4 (AAC)... — o servidor confere pelos bytes. */
+        private String tipo;
+        /** Conteúdo em base64 (aceita também o prefixo "data:audio/...;base64,"). */
+        private String base64;
+        /** Duração informada pelo app (máx. 2 min). */
+        private Integer duracaoSegundos;
+
+        public String getTipo() { return tipo; }
+        public void setTipo(String tipo) { this.tipo = tipo; }
+        public String getBase64() { return base64; }
+        public void setBase64(String base64) { this.base64 = base64; }
+        public Integer getDuracaoSegundos() { return duracaoSegundos; }
+        public void setDuracaoSegundos(Integer duracaoSegundos) { this.duracaoSegundos = duracaoSegundos; }
+    }
 
     public static class Arquivo {
         /** Nome original, com extensão (ex.: "gastos-setembro.xlsx"). */

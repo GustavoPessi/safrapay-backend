@@ -64,6 +64,12 @@ public class ChatService {
     static final int MAX_BYTES_IMAGEM = 5 * 1024 * 1024;
     /** Limite do arquivo (planilha/CSV/texto) antes de ler. */
     static final int MAX_BYTES_ARQUIVO = 2 * 1024 * 1024;
+    /** Limite da mensagem de voz depois de decodificada (2 min em Opus/AAC fica bem abaixo). */
+    static final int MAX_BYTES_AUDIO = 4 * 1024 * 1024;
+    /** Duração máxima aceita (o app grava até 2 min; margem pra arredondamento). */
+    static final int MAX_SEGUNDOS_AUDIO = 150;
+    /** Texto que o app manda no lugar da mensagem de voz; o servidor troca pela transcrição. */
+    static final String MARCADOR_VOZ = "(mensagem de voz)";
     /** Máximo de lançamentos devolvidos numa resposta (arquivo grande). */
     static final int MAX_LANCAMENTOS = 200;
     private static final String[] DIAS_SEMANA = {
@@ -72,13 +78,15 @@ public class ChatService {
 
     private final AnthropicClient ia;
     private final LimiteDiarioIa limite;
+    private final TranscricaoAudio transcricao;
     private final Map<String, Object> ferramenta;
     private final int maxTokensArquivo;
 
-    public ChatService(AnthropicClient ia, LimiteDiarioIa limite, ObjectMapper mapper,
+    public ChatService(AnthropicClient ia, LimiteDiarioIa limite, TranscricaoAudio transcricao, ObjectMapper mapper,
                        @org.springframework.beans.factory.annotation.Value("${ia.max-tokens-arquivo:8192}") int maxTokensArquivo) {
         this.ia = ia;
         this.limite = limite;
+        this.transcricao = transcricao;
         this.maxTokensArquivo = maxTokensArquivo;
         try {
             this.ferramenta = mapper.readValue(FERRAMENTA_JSON, new TypeReference<Map<String, Object>>() {});
@@ -93,12 +101,21 @@ public class ChatService {
         }
         boolean temImagem = req.getImagem() != null && req.getImagem().getBase64() != null && !req.getImagem().getBase64().isBlank();
         boolean temArquivo = req.getArquivo() != null && req.getArquivo().getBase64() != null && !req.getArquivo().getBase64().isBlank();
-        if (temImagem && temArquivo) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Envie foto ou arquivo, não os dois na mesma mensagem");
+        boolean temAudio = req.getAudio() != null && req.getAudio().getBase64() != null && !req.getAudio().getBase64().isBlank();
+        if ((temImagem ? 1 : 0) + (temArquivo ? 1 : 0) + (temAudio ? 1 : 0) > 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Envie um anexo por vez (foto, arquivo ou áudio)");
         }
         List<Map<String, Object>> mensagens = montarMensagens(req);
         anexarImagem(mensagens, req.getImagem());
         LeitorArquivo.Conteudo arquivo = anexarArquivo(mensagens, req.getArquivo());
+        byte[] audio = temAudio ? decodificarAudio(req.getAudio()) : null;
+        TranscricaoAudio.Formato formatoAudio = audio == null ? null : TranscricaoAudio.detectarFormato(audio);
+        if (audio != null && formatoAudio == null) {
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Formato de áudio não suportado");
+        }
+        if (audio != null && !transcricao.configurado()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Transcrição de áudio não configurada no servidor");
+        }
         LocalDate hoje = converterData(req.getHoje());
         if (hoje == null) hoje = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
         ChatMensagemRequest.Contexto ctx = req.getContexto() != null ? req.getContexto() : new ChatMensagemRequest.Contexto();
@@ -107,6 +124,12 @@ public class ChatService {
         int restantes = limite.consumir(usuarioId);
         if (restantes < 0) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Limite diário de mensagens do assistente atingido");
+        }
+
+        String textoVoz = null;
+        if (audio != null) {
+            textoVoz = transcreverAudio(audio, formatoAudio, ctx, usuarioId);
+            trocarMarcadorVoz(mensagens, textoVoz);
         }
 
         JsonNode saida;
@@ -126,6 +149,7 @@ public class ChatService {
 
         ChatMensagemResponse resp = validar(saida, ctx, hoje);
         resp.setMensagensRestantesHoje(restantes);
+        resp.setTranscricao(textoVoz);
         if (arquivo != null && arquivo.truncado()) {
             resp.getAvisos().add("Arquivo grande: só as primeiras " + arquivo.linhasLidas()
                     + " linhas foram lidas. Divida o arquivo para lançar o restante.");
@@ -147,7 +171,9 @@ public class ChatService {
         boolean temImagem = (req.getImagem() != null && req.getImagem().getBase64() != null
                 && !req.getImagem().getBase64().isBlank())
                 || (req.getArquivo() != null && req.getArquivo().getBase64() != null
-                && !req.getArquivo().getBase64().isBlank()); // qualquer anexo
+                && !req.getArquivo().getBase64().isBlank())
+                || (req.getAudio() != null && req.getAudio().getBase64() != null
+                && !req.getAudio().getBase64().isBlank()); // qualquer anexo
         if ((historico == null || historico.isEmpty()) && !temImagem) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nenhuma mensagem enviada");
         }
@@ -177,7 +203,8 @@ public class ChatService {
             // só foto, sem texto: cria a mensagem do produtor que vai carregar a imagem
             Map<String, Object> nova = new HashMap<>();
             nova.put("role", "user");
-            nova.put("content", req.getArquivo() != null ? "O produtor enviou este arquivo." : "O produtor enviou esta foto.");
+            nova.put("content", req.getAudio() != null && req.getAudio().getBase64() != null ? MARCADOR_VOZ
+                    : req.getArquivo() != null ? "O produtor enviou este arquivo." : "O produtor enviou esta foto.");
             saida.add(nova);
         }
         if (saida.isEmpty() || !"user".equals(saida.get(saida.size() - 1).get("role"))) {
@@ -261,6 +288,99 @@ public class ChatService {
         return conteudo;
     }
 
+    /** Decodifica e confere o tamanho/duração da mensagem de voz (400/413). */
+    byte[] decodificarAudio(ChatMensagemRequest.Audio audio) {
+        String b64 = audio.getBase64().trim();
+        int virgula = b64.indexOf(',');
+        if (b64.startsWith("data:") && virgula > 0) b64 = b64.substring(virgula + 1);
+        byte[] bytes;
+        try {
+            bytes = java.util.Base64.getMimeDecoder().decode(b64);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Áudio inválido (base64)");
+        }
+        if (bytes.length == 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Áudio vazio");
+        if (bytes.length > MAX_BYTES_AUDIO
+                || (audio.getDuracaoSegundos() != null && audio.getDuracaoSegundos() > MAX_SEGUNDOS_AUDIO)) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Mensagem de voz longa demais (máximo 2 minutos)");
+        }
+        return bytes;
+    }
+
+    /**
+     * Transcreve a mensagem de voz. Já consumiu o limite diário: se a transcrição
+     * falhar ou vier vazia, devolve a mensagem (não é justo contar).
+     */
+    private String transcreverAudio(byte[] audio, TranscricaoAudio.Formato formato,
+                                    ChatMensagemRequest.Contexto ctx, Long usuarioId) {
+        String texto;
+        try {
+            texto = transcricao.transcrever(audio, formato, dicaTranscricao(ctx));
+        } catch (RestClientResponseException e) {
+            limite.devolver(usuarioId);
+            String corpo = e.getResponseBodyAsString();
+            log.warn("API de transcricao respondeu {}: {}", e.getStatusCode().value(), resumir(corpo));
+            if (e.getStatusCode().value() == 400 && corpo != null && corpo.toLowerCase(Locale.ROOT).contains("format")) {
+                throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Formato de áudio não aceito");
+            }
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Falha no serviço de transcrição");
+        } catch (RestClientException | IllegalStateException e) {
+            limite.devolver(usuarioId);
+            log.warn("Falha ao chamar a API de transcricao: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Falha no serviço de transcrição");
+        }
+        texto = texto == null ? "" : texto.trim();
+        if (texto.replaceAll("[\\p{Punct}\\s]", "").length() < 2) {
+            limite.devolver(usuarioId);
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Não consegui entender o áudio");
+        }
+        if (texto.length() > MAX_CARACTERES_MENSAGEM) texto = texto.substring(0, MAX_CARACTERES_MENSAGEM);
+        return texto;
+    }
+
+    /** Troca o "(mensagem de voz)" do fim da última mensagem do produtor pela transcrição. */
+    static void trocarMarcadorVoz(List<Map<String, Object>> mensagens, String texto) {
+        Map<String, Object> ultima = mensagens.get(mensagens.size() - 1);
+        String conteudo = String.valueOf(ultima.get("content"));
+        String transcrito = "(mensagem de voz, transcrita automaticamente) " + texto;
+        if (conteudo.endsWith(MARCADOR_VOZ)) {
+            conteudo = conteudo.substring(0, conteudo.length() - MARCADOR_VOZ.length()) + transcrito;
+        } else {
+            conteudo = conteudo + "\n" + transcrito;
+        }
+        ultima.put("content", conteudo);
+    }
+
+    /**
+     * Dica pra transcrição: o assunto + termos que o produtor provavelmente vai
+     * falar (culturas, talhões, máquinas, categorias). Curta de propósito.
+     */
+    static String dicaTranscricao(ChatMensagemRequest.Contexto ctx) {
+        java.util.LinkedHashSet<String> termos = new java.util.LinkedHashSet<>(List.of(
+                "safra", "talhão", "soja", "milho", "ureia", "glifosato", "calcário", "NPK", "diesel", "saca", "hectare"));
+        for (ChatMensagemRequest.Safra s : limitar(ctx.getSafras())) {
+            if (s == null) continue;
+            if (vazioParaNull(s.getCultura()) != null) termos.add(s.getCultura().trim());
+            if (vazioParaNull(s.getTalhao()) != null) termos.add(s.getTalhao().trim());
+        }
+        for (ChatMensagemRequest.Talhao t : limitar(ctx.getTalhoes())) {
+            if (t != null && vazioParaNull(t.getNome()) != null) termos.add(t.getNome().trim());
+        }
+        for (ChatMensagemRequest.Maquina m : limitar(ctx.getMaquinas())) {
+            if (m != null && vazioParaNull(m.getNome()) != null) termos.add(m.getNome().trim());
+        }
+        for (String c : limitar(ctx.getCategorias())) if (vazioParaNull(c) != null) termos.add(c.trim());
+        StringBuilder sb = new StringBuilder("Mensagem de voz de um produtor rural brasileiro sobre gastos, receitas e safras da fazenda. Termos: ");
+        boolean primeiro = true;
+        for (String t : termos) {
+            if (sb.length() + t.length() > 600) break;
+            if (!primeiro) sb.append(", ");
+            sb.append(t);
+            primeiro = false;
+        }
+        return sb.append('.').toString();
+    }
+
     /** Identifica o formato pelos primeiros bytes (assinatura do arquivo). */
     static String detectarTipo(byte[] b) {
         if (b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF) return "image/jpeg";
@@ -313,6 +433,8 @@ public class ChatService {
           .append("- Máquina: só preencha maquinaUuid se o produtor citar uma máquina da lista; senão null. Receita nunca tem máquina.\n")
           .append("- Descrição: curta e clara, com a primeira letra maiúscula (ex.: \"Diesel S10\", \"Venda de 400 sacas de soja\").\n")
           .append("- Uma mensagem pode ter mais de um lançamento: devolva todos.\n")
+          .append("- Mensagens que começam com \"(mensagem de voz, transcrita automaticamente)\" vieram de áudio e podem ter erros de ")
+          .append("reconhecimento (nome de máquina, talhão ou produto parecido, número por extenso): interprete pelo contexto e pelas listas abaixo.\n")
           .append("- Sempre que o produtor estiver registrando algo, inclua o lançamento em lancamentos MESMO INCOMPLETO, ")
           .append("com null nos campos que não souber (ex.: safraUuid null quando precisar perguntar a safra). ")
           .append("Nunca devolva lancamentos vazio quando houver um lançamento em andamento na conversa.\n")
