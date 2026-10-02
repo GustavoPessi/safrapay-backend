@@ -17,11 +17,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final UsuarioDetailsService usuarioDetailsService;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
     private final JwtAuthFilter jwtAuthFilter;
 
-    public SecurityConfig(UsuarioDetailsService usuarioDetailsService, JwtAuthFilter jwtAuthFilter) {
-        this.usuarioDetailsService = usuarioDetailsService;
+    public SecurityConfig(UsuarioAutenticadoService usuarioAutenticadoService, JwtAuthFilter jwtAuthFilter) {
+        this.usuarioAutenticadoService = usuarioAutenticadoService;
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
@@ -33,7 +33,7 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(usuarioDetailsService);
+        provider.setUserDetailsService(usuarioAutenticadoService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }

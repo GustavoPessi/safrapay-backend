@@ -7,7 +7,7 @@ import com.safrapay.backend.auth.dto.LoginRequest;
 import com.safrapay.backend.auth.dto.MensagemResponse;
 import com.safrapay.backend.auth.dto.RedefinirSenhaRequest;
 import com.safrapay.backend.auth.dto.RefreshRequest;
-import com.safrapay.backend.auth.dto.RegisterRequest;
+import com.safrapay.backend.auth.dto.RegistrarRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +29,7 @@ public class AuthController {
     }
 
     @PostMapping("/registrar")
-    public ResponseEntity<MensagemResponse> registrar(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<MensagemResponse> registrar(@Valid @RequestBody RegistrarRequest request) {
         return ResponseEntity.ok(authService.registrar(request));
     }
 
@@ -44,7 +44,7 @@ public class AuthController {
      * venceu. 401 = refresh token invalido/vencido/revogado -> pedir login.
      */
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+    public ResponseEntity<AuthResponse> renovar(@Valid @RequestBody RefreshRequest request) {
         return ResponseEntity.ok(authService.renovar(request));
     }
 

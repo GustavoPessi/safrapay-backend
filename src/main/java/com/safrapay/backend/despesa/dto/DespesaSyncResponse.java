@@ -1,7 +1,7 @@
 package com.safrapay.backend.despesa.dto;
 
 import com.safrapay.backend.entity.Despesa;
-import com.safrapay.backend.util.SyncDateUtil;
+import com.safrapay.backend.util.DataSyncUtil;
 
 import java.time.format.DateTimeFormatter;
 
@@ -25,7 +25,7 @@ public class DespesaSyncResponse {
         r.descricao = d.getDescricao();
         r.valor = d.getValor() == null ? null : d.getValor().doubleValue();
         r.dataRegistro = d.getDataRegistro() == null ? null : d.getDataRegistro().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        r.atualizadoEm = SyncDateUtil.formatar(d.getAtualizadoEm());
+        r.atualizadoEm = DataSyncUtil.formatar(d.getAtualizadoEm());
         return r;
     }
 

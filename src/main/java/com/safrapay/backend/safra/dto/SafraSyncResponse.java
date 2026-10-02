@@ -1,7 +1,7 @@
 package com.safrapay.backend.safra.dto;
 
 import com.safrapay.backend.entity.Safra;
-import com.safrapay.backend.util.SyncDateUtil;
+import com.safrapay.backend.util.DataSyncUtil;
 
 import java.time.format.DateTimeFormatter;
 
@@ -23,7 +23,7 @@ public class SafraSyncResponse {
         r.anoSafra = s.getAnoSafra();
         r.dataInicio = s.getDataInicio() == null ? null : s.getDataInicio().format(DateTimeFormatter.ISO_LOCAL_DATE);
         r.dataFim = s.getDataFim() == null ? null : s.getDataFim().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        r.atualizadoEm = SyncDateUtil.formatar(s.getAtualizadoEm());
+        r.atualizadoEm = DataSyncUtil.formatar(s.getAtualizadoEm());
         return r;
     }
 

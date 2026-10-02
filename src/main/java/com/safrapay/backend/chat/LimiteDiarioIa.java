@@ -22,11 +22,8 @@ public class LimiteDiarioIa {
     private final int limite;
     private final ConcurrentHashMap<Long, Uso> usos = new ConcurrentHashMap<>();
 
-    private static final class Uso {
-        final LocalDate dia;
-        final int quantidade;
-        Uso(LocalDate dia, int quantidade) { this.dia = dia; this.quantidade = quantidade; }
-    }
+    /** Quantas mensagens o usuário já usou e em que dia (imutável). */
+    private record Uso(LocalDate dia, int quantidade) {}
 
     public LimiteDiarioIa(@Value("${ia.limite-diario:50}") int limite) {
         this.limite = limite;
@@ -37,7 +34,7 @@ public class LimiteDiarioIa {
         LocalDate hoje = LocalDate.now(FUSO);
         final int[] restante = {-1};
         usos.compute(usuarioId, (id, atual) -> {
-            int usadas = (atual == null || !atual.dia.equals(hoje)) ? 0 : atual.quantidade;
+            int usadas = (atual == null || !atual.dia().equals(hoje)) ? 0 : atual.quantidade();
             if (usadas >= limite) {
                 restante[0] = -1;
                 return atual;
@@ -52,6 +49,6 @@ public class LimiteDiarioIa {
     public void devolver(Long usuarioId) {
         LocalDate hoje = LocalDate.now(FUSO);
         usos.computeIfPresent(usuarioId, (id, atual) ->
-                atual.dia.equals(hoje) && atual.quantidade > 0 ? new Uso(hoje, atual.quantidade - 1) : atual);
+                atual.dia().equals(hoje) && atual.quantidade() > 0 ? new Uso(hoje, atual.quantidade() - 1) : atual);
     }
 }

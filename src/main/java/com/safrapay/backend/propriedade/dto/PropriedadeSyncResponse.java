@@ -1,7 +1,7 @@
 package com.safrapay.backend.propriedade.dto;
 
 import com.safrapay.backend.entity.Propriedade;
-import com.safrapay.backend.util.SyncDateUtil;
+import com.safrapay.backend.util.DataSyncUtil;
 
 import java.math.BigDecimal;
 
@@ -34,7 +34,7 @@ public class PropriedadeSyncResponse {
         r.observacoes = p.getObservacoes();
         r.latitude = p.getLatitude();
         r.longitude = p.getLongitude();
-        r.atualizadoEm = SyncDateUtil.formatar(p.getAtualizadoEm());
+        r.atualizadoEm = DataSyncUtil.formatar(p.getAtualizadoEm());
         return r;
     }
 

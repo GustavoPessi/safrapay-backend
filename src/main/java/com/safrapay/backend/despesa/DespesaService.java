@@ -132,7 +132,7 @@ public class DespesaService {
                     || item.getDescricao() == null || item.getDescricao().isBlank()
                     || item.getValor() == null) continue;
 
-            LocalDate dataRegistro = parseData(item.getDataRegistro());
+            LocalDate dataRegistro = converterData(item.getDataRegistro());
             if (dataRegistro == null) continue; // obrigatoria no banco
 
             Instant atualizadoCliente;
@@ -205,7 +205,7 @@ public class DespesaService {
         });
     }
 
-    private LocalDate parseData(String iso) {
+    private LocalDate converterData(String iso) {
         if (iso == null || iso.isBlank()) return null;
         try { return LocalDate.parse(iso); }
         catch (Exception e) { return null; }

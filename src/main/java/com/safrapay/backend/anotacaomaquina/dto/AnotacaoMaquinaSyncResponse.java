@@ -1,7 +1,7 @@
 package com.safrapay.backend.anotacaomaquina.dto;
 
 import com.safrapay.backend.entity.AnotacaoMaquina;
-import com.safrapay.backend.util.SyncDateUtil;
+import com.safrapay.backend.util.DataSyncUtil;
 
 import java.time.format.DateTimeFormatter;
 
@@ -21,7 +21,7 @@ public class AnotacaoMaquinaSyncResponse {
         r.texto = a.getTexto();
         r.data = a.getData() == null ? null : a.getData().format(DateTimeFormatter.ISO_LOCAL_DATE);
         r.concluida = a.isConcluida();
-        r.atualizadoEm = SyncDateUtil.formatar(a.getAtualizadoEm());
+        r.atualizadoEm = DataSyncUtil.formatar(a.getAtualizadoEm());
         return r;
     }
 

@@ -26,23 +26,23 @@ public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
-    private final SesClient sesClient;
+    private final SesClient clienteSes;
     private final String remetente;
-    private final String baseUrl;
+    private final String urlBase;
 
-    public EmailService(SesClient sesClient,
+    public EmailService(SesClient clienteSes,
                          @Value("${aws.ses.remetente}") String remetente,
-                         @Value("${app.base-url}") String baseUrl) {
-        this.sesClient = sesClient;
+                         @Value("${app.base-url}") String urlBase) {
+        this.clienteSes = clienteSes;
         this.remetente = remetente;
-        this.baseUrl = baseUrl;
+        this.urlBase = urlBase;
     }
 
     public void enviarConfirmacaoEmail(String destinatario, String nome, String token) {
         // Aponta para a pagina web amigavel (src/main/resources/static/confirmar-email.html),
         // que le o token da URL e chama GET /api/auth/confirmar-email por dentro (same-origin).
         // Antes o link ia direto pro endpoint da API, que devolvia JSON cru no navegador.
-        String link = baseUrl + "/confirmar-email.html?token=" + token;
+        String link = urlBase + "/confirmar-email.html?token=" + token;
         String corpoHtml = "<p>Ola, " + nome + "!</p>"
                 + "<p>Obrigado por se cadastrar no SafraPay. Clique no link abaixo para confirmar seu e-mail:</p>"
                 + "<p><a href=\"" + link + "\">" + link + "</a></p>"
@@ -63,7 +63,7 @@ public class EmailService {
         // a mensagem. Quando houver dominio + HTTPS, essa mesma URL vira a
         // base de um Android App Link (abre o app se instalado, cai nessa
         // pagina como fallback caso contrario).
-        String link = baseUrl + "/redefinir-senha.html?token=" + token;
+        String link = urlBase + "/redefinir-senha.html?token=" + token;
         String corpoHtml = "<p>Ola, " + nome + "!</p>"
                 + "<p>Recebemos um pedido para redefinir sua senha no SafraPay. "
                 + "Clique no link abaixo para escolher uma nova senha (valido por 1 hora):</p>"
@@ -92,7 +92,7 @@ public class EmailService {
                                     .build())
                             .build())
                     .build();
-            sesClient.sendEmail(request);
+            clienteSes.sendEmail(request);
         } catch (SesException e) {
             // Nao deixamos falha de e-mail derrubar o fluxo de cadastro/reset -
             // so registramos no log para investigar depois.

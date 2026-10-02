@@ -7,14 +7,14 @@ import com.safrapay.backend.auth.dto.LoginRequest;
 import com.safrapay.backend.auth.dto.MensagemResponse;
 import com.safrapay.backend.auth.dto.RedefinirSenhaRequest;
 import com.safrapay.backend.auth.dto.RefreshRequest;
-import com.safrapay.backend.auth.dto.RegisterRequest;
+import com.safrapay.backend.auth.dto.RegistrarRequest;
 import com.safrapay.backend.email.EmailService;
 import com.safrapay.backend.entity.TipoToken;
 import com.safrapay.backend.entity.Usuario;
 import com.safrapay.backend.repository.UsuarioRepository;
 import com.safrapay.backend.security.JwtService;
 import com.safrapay.backend.security.SecurityUtils;
-import com.safrapay.backend.security.UsuarioDetailsImpl;
+import com.safrapay.backend.security.UsuarioAutenticado;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -52,7 +52,7 @@ public class AuthService {
         this.refreshTokenService = refreshTokenService;
     }
 
-    public MensagemResponse registrar(RegisterRequest request) {
+    public MensagemResponse registrar(RegistrarRequest request) {
         if (usuarioRepository.existsByEmail(request.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ja existe um usuario com esse email");
         }
@@ -124,7 +124,7 @@ public class AuthService {
     }
 
     private AuthResponse montarResposta(Usuario usuario, String refreshToken) {
-        String token = jwtService.gerarToken(new UsuarioDetailsImpl(usuario));
+        String token = jwtService.gerarToken(new UsuarioAutenticado(usuario));
         AuthResponse resposta = new AuthResponse(
                 token,
                 usuario.getNome(),
@@ -148,7 +148,7 @@ public class AuthService {
         // deixar alguem descobrir quais e-mails estao cadastrados (enumeration).
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(request.getEmail());
         usuarioOpt.ifPresent(usuario -> {
-            String token = tokenService.gerarTokenResetSenha(usuario);
+            String token = tokenService.gerarTokenRedefinicaoSenha(usuario);
             emailService.enviarRedefinicaoSenha(usuario.getEmail(), usuario.getNome(), token);
         });
         return new MensagemResponse("Se o e-mail existir na nossa base, voce vai receber um link de redefinicao de senha.");
