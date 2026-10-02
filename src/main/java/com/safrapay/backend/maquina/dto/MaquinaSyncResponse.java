@@ -1,7 +1,7 @@
 package com.safrapay.backend.maquina.dto;
 
 import com.safrapay.backend.entity.Maquina;
-import com.safrapay.backend.util.SyncDateUtil;
+import com.safrapay.backend.util.DataSyncUtil;
 
 import java.math.BigDecimal;
 
@@ -29,7 +29,7 @@ public class MaquinaSyncResponse {
         r.identificacao = m.getIdentificacao();
         r.valor = m.getValor();
         r.observacoes = m.getObservacoes();
-        r.atualizadoEm = SyncDateUtil.formatar(m.getAtualizadoEm());
+        r.atualizadoEm = DataSyncUtil.formatar(m.getAtualizadoEm());
         return r;
     }
 

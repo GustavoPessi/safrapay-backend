@@ -13,7 +13,7 @@ public class SesConfig {
     // busca automaticamente nas variaveis de ambiente AWS_ACCESS_KEY_ID e
     // AWS_SECRET_ACCESS_KEY (default credentials provider chain).
     @Bean
-    public SesClient sesClient(@Value("${aws.ses.region}") String regiao) {
+    public SesClient clienteSes(@Value("${aws.ses.region}") String regiao) {
         return SesClient.builder()
                 .region(Region.of(regiao))
                 .build();

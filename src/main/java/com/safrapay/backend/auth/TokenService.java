@@ -16,7 +16,7 @@ import java.util.UUID;
 public class TokenService {
 
     private static final long HORAS_EXPIRACAO_CONFIRMACAO = 24;
-    private static final long HORAS_EXPIRACAO_RESET = 1;
+    private static final long HORAS_EXPIRACAO_REDEFINICAO = 1;
 
     private final TokenVerificacaoRepository repository;
 
@@ -28,8 +28,8 @@ public class TokenService {
         return gerarToken(usuario, TipoToken.CONFIRMACAO_EMAIL, HORAS_EXPIRACAO_CONFIRMACAO);
     }
 
-    public String gerarTokenResetSenha(Usuario usuario) {
-        return gerarToken(usuario, TipoToken.RESET_SENHA, HORAS_EXPIRACAO_RESET);
+    public String gerarTokenRedefinicaoSenha(Usuario usuario) {
+        return gerarToken(usuario, TipoToken.RESET_SENHA, HORAS_EXPIRACAO_REDEFINICAO);
     }
 
     private String gerarToken(Usuario usuario, TipoToken tipo, long horasValidade) {

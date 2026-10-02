@@ -12,11 +12,11 @@ import java.util.List;
  * Por enquanto sem papeis/roles (Gerente/Colaborador fica para a fase
  * multi-usuario - ver Notion).
  */
-public class UsuarioDetailsImpl implements UserDetails {
+public class UsuarioAutenticado implements UserDetails {
 
     private final Usuario usuario;
 
-    public UsuarioDetailsImpl(Usuario usuario) {
+    public UsuarioAutenticado(Usuario usuario) {
         this.usuario = usuario;
     }
 

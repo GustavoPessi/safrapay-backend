@@ -19,24 +19,24 @@ import java.util.function.Function;
 public class JwtService {
 
     @Value("${jwt.secret}")
-    private String secret;
+    private String segredo;
 
     @Value("${jwt.expiration-ms}")
-    private long expirationMs;
+    private long expiracaoMs;
 
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+    private SecretKey chaveAssinatura() {
+        return Keys.hmacShaKeyFor(segredo.getBytes());
     }
 
-    public String gerarToken(UserDetails userDetails) {
+    public String gerarToken(UserDetails usuario) {
         Date agora = new Date();
-        Date expiracao = new Date(agora.getTime() + expirationMs);
+        Date expiracao = new Date(agora.getTime() + expiracaoMs);
 
         return Jwts.builder()
-                .subject(userDetails.getUsername())
+                .subject(usuario.getUsername())
                 .issuedAt(agora)
                 .expiration(expiracao)
-                .signWith(getSigningKey())
+                .signWith(chaveAssinatura())
                 .compact();
     }
 
@@ -44,9 +44,9 @@ public class JwtService {
         return extrairClaim(token, Claims::getSubject);
     }
 
-    public boolean tokenValido(String token, UserDetails userDetails) {
+    public boolean tokenValido(String token, UserDetails usuario) {
         String email = extrairEmail(token);
-        return email.equals(userDetails.getUsername()) && !tokenExpirado(token);
+        return email.equals(usuario.getUsername()) && !tokenExpirado(token);
     }
 
     private boolean tokenExpirado(String token) {
@@ -55,7 +55,7 @@ public class JwtService {
 
     private <T> T extrairClaim(String token, Function<Claims, T> resolver) {
         Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(chaveAssinatura())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

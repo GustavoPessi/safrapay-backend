@@ -29,25 +29,25 @@ public class AnthropicClient {
     private static final String VERSAO_API = "2023-06-01";
 
     private final RestClient http;
-    private final String apiKey;
+    private final String chaveApi;
     private final String modelo;
-    private final int maxTokens;
+    private final int limiteTokensPadrao;
 
     public AnthropicClient(RestClient.Builder builder,
-                           @Value("${ia.anthropic.api-key:}") String apiKey,
+                           @Value("${ia.anthropic.api-key:}") String chaveApi,
                            @Value("${ia.modelo}") String modelo,
-                           @Value("${ia.max-tokens:1024}") int maxTokens) {
+                           @Value("${ia.max-tokens:1024}") int limiteTokensPadrao) {
         SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
         fabrica.setConnectTimeout(10_000);
         fabrica.setReadTimeout(150_000); // arquivo com muitos lançamentos pode levar ~1 min
         this.http = builder.requestFactory(fabrica).build();
-        this.apiKey = apiKey;
+        this.chaveApi = chaveApi;
         this.modelo = modelo;
-        this.maxTokens = maxTokens;
+        this.limiteTokensPadrao = limiteTokensPadrao;
     }
 
     public boolean configurado() {
-        return apiKey != null && !apiKey.isBlank();
+        return chaveApi != null && !chaveApi.isBlank();
     }
 
     /**
@@ -61,7 +61,7 @@ public class AnthropicClient {
      */
     public JsonNode chamarComFerramenta(String sistema, List<Map<String, Object>> mensagens,
                                        Map<String, Object> ferramenta) {
-        return chamarComFerramenta(sistema, mensagens, ferramenta, maxTokens);
+        return chamarComFerramenta(sistema, mensagens, ferramenta, limiteTokensPadrao);
     }
 
     /** Igual ao de cima, com limite de tokens de saída próprio (ex.: arquivo com muitos lançamentos). */
@@ -77,7 +77,7 @@ public class AnthropicClient {
 
         JsonNode resposta = http.post()
                 .uri(URL)
-                .header("x-api-key", apiKey)
+                .header("x-api-key", chaveApi)
                 .header("anthropic-version", VERSAO_API)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(corpo)

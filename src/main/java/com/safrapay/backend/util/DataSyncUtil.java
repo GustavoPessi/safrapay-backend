@@ -15,13 +15,13 @@ import java.time.format.DateTimeFormatter;
  * Instant.parse aceita qualquer quantidade de digitos, entao nao precisa
  * de um parser dedicado.
  */
-public final class SyncDateUtil {
-    private SyncDateUtil() {}
+public final class DataSyncUtil {
+    private DataSyncUtil() {}
 
-    private static final DateTimeFormatter FORMATTER =
+    private static final DateTimeFormatter FORMATO =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
 
-    public static String formatar(Instant instant) {
-        return instant == null ? null : FORMATTER.format(instant);
+    public static String formatar(Instant instante) {
+        return instante == null ? null : FORMATO.format(instante);
     }
 }

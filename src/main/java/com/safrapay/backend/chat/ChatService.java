@@ -98,7 +98,7 @@ public class ChatService {
         List<Map<String, Object>> mensagens = montarMensagens(req);
         anexarImagem(mensagens, req.getImagem());
         LeitorArquivo.Conteudo arquivo = anexarArquivo(mensagens, req.getArquivo());
-        LocalDate hoje = parseData(req.getHoje());
+        LocalDate hoje = converterData(req.getHoje());
         if (hoje == null) hoje = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
         ChatMensagemRequest.Contexto ctx = req.getContexto() != null ? req.getContexto() : new ChatMensagemRequest.Contexto();
 
@@ -125,8 +125,8 @@ public class ChatService {
 
         ChatMensagemResponse resp = validar(saida, ctx, hoje);
         resp.setMensagensRestantesHoje(restantes);
-        if (arquivo != null && arquivo.truncado) {
-            resp.getAvisos().add("Arquivo grande: só as primeiras " + arquivo.linhasLidas
+        if (arquivo != null && arquivo.truncado()) {
+            resp.getAvisos().add("Arquivo grande: só as primeiras " + arquivo.linhasLidas()
                     + " linhas foram lidas. Divida o arquivo para lançar o restante.");
         }
         return resp;
@@ -250,13 +250,13 @@ public class ChatService {
         } catch (java.io.IOException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não foi possível ler o arquivo");
         }
-        if (conteudo.texto.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O arquivo não tem conteúdo");
+        if (conteudo.texto().isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O arquivo não tem conteúdo");
 
         String nome = arquivo.getNome() == null ? "arquivo" : arquivo.getNome().replaceAll("[\\r\\n\"]", " ").trim();
         Map<String, Object> ultima = mensagens.get(mensagens.size() - 1);
-        ultima.put("content", ultima.get("content") + "\n\nARQUIVO ANEXADO \"" + nome + "\" (" + conteudo.formato + ", "
-                + conteudo.linhasLidas + " linhas" + (conteudo.truncado ? ", cortado no limite de leitura" : "") + "):\n"
-                + "<<<INICIO DO ARQUIVO>>>\n" + conteudo.texto + "<<<FIM DO ARQUIVO>>>");
+        ultima.put("content", ultima.get("content") + "\n\nARQUIVO ANEXADO \"" + nome + "\" (" + conteudo.formato() + ", "
+                + conteudo.linhasLidas() + " linhas" + (conteudo.truncado() ? ", cortado no limite de leitura" : "") + "):\n"
+                + "<<<INICIO DO ARQUIVO>>>\n" + conteudo.texto() + "<<<FIM DO ARQUIVO>>>");
         return conteudo;
     }
 
@@ -514,7 +514,7 @@ public class ChatService {
                 faltando.add("valor");
             }
 
-            LocalDate data = parseData(textoOuNull(item.path("data")));
+            LocalDate data = converterData(textoOuNull(item.path("data")));
             if (data != null) l.setData(data.toString()); else faltando.add("data");
 
             String descricao = textoOuNull(item.path("descricao"));
@@ -611,8 +611,8 @@ public class ChatService {
         ChatMensagemResponse.Consulta q = new ChatMensagemResponse.Consulta();
         q.setTipo(tipo);
 
-        LocalDate inicio = parseData(textoOuNull(c.path("dataInicio")));
-        LocalDate fim = parseData(textoOuNull(c.path("dataFim")));
+        LocalDate inicio = converterData(textoOuNull(c.path("dataInicio")));
+        LocalDate fim = converterData(textoOuNull(c.path("dataFim")));
         if (inicio != null && fim != null && inicio.isAfter(fim)) { LocalDate t = inicio; inicio = fim; fim = t; }
         // "Quanto gastei dia 20/12?" perguntado em janeiro = dezembro passado.
         if (inicio != null && hoje != null && inicio.isAfter(hoje)) {
@@ -742,7 +742,7 @@ public class ChatService {
         return lista.size() > MAX_ITENS_CONTEXTO ? lista.subList(0, MAX_ITENS_CONTEXTO) : lista;
     }
 
-    private static LocalDate parseData(String iso) {
+    private static LocalDate converterData(String iso) {
         if (iso == null || iso.isBlank()) return null;
         try { return LocalDate.parse(iso.trim()); } catch (Exception e) { return null; }
     }

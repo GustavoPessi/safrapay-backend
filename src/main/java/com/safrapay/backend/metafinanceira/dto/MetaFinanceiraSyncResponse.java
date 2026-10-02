@@ -1,7 +1,7 @@
 package com.safrapay.backend.metafinanceira.dto;
 
 import com.safrapay.backend.entity.MetaFinanceira;
-import com.safrapay.backend.util.SyncDateUtil;
+import com.safrapay.backend.util.DataSyncUtil;
 
 import java.time.format.DateTimeFormatter;
 
@@ -21,7 +21,7 @@ public class MetaFinanceiraSyncResponse {
         r.descricao = m.getDescricao();
         r.valorAlvo = m.getValorAlvo() == null ? null : m.getValorAlvo().doubleValue();
         r.prazo = m.getPrazo() == null ? null : m.getPrazo().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        r.atualizadoEm = SyncDateUtil.formatar(m.getAtualizadoEm());
+        r.atualizadoEm = DataSyncUtil.formatar(m.getAtualizadoEm());
         return r;
     }
 

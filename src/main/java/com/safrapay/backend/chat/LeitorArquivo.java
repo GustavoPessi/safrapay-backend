@@ -49,20 +49,15 @@ public final class LeitorArquivo {
     private static final int MAX_ENTRADAS_ZIP = 2_000;
     private static final int MAX_ABAS = 5;
 
-    /** Resultado da leitura. */
-    public static final class Conteudo {
-        public final String formato;   // "planilha Excel", "CSV" ou "texto"
-        public final String texto;
-        public final int linhasLidas;
-        public final boolean truncado;
-
-        Conteudo(String formato, String texto, int linhasLidas, boolean truncado) {
-            this.formato = formato;
-            this.texto = texto;
-            this.linhasLidas = linhasLidas;
-            this.truncado = truncado;
-        }
-    }
+    /**
+     * Resultado da leitura (imutável: record = atributos private final + acessores).
+     *
+     * @param formato     "planilha Excel", "CSV" ou "texto"
+     * @param texto       conteúdo em texto, uma linha por registro
+     * @param linhasLidas quantas linhas foram lidas
+     * @param truncado    true se parou no limite de linhas/caracteres
+     */
+    public record Conteudo(String formato, String texto, int linhasLidas, boolean truncado) {}
 
     /** Arquivo em formato que não sabemos ler (vira 415 no service). */
     public static final class FormatoNaoSuportado extends Exception {
@@ -141,7 +136,7 @@ public final class LeitorArquivo {
 
         // abas na ordem do arquivo: nome -> caminho do XML
         Map<String, String> abas = new LinkedHashMap<>();
-        NodeList sheets = parse(workbook).getElementsByTagNameNS("*", "sheet");
+        NodeList sheets = lerXml(workbook).getElementsByTagNameNS("*", "sheet");
         for (int i = 0; i < sheets.getLength(); i++) {
             Element s = (Element) sheets.item(i);
             String rid = s.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
@@ -185,7 +180,7 @@ public final class LeitorArquivo {
     private static List<String> linhasDaAba(byte[] xml, List<String> compartilhadas, Set<Integer> estilosData)
             throws IOException {
         List<String> saida = new ArrayList<>();
-        NodeList rows = parse(xml).getElementsByTagNameNS("*", "row");
+        NodeList rows = lerXml(xml).getElementsByTagNameNS("*", "row");
         for (int i = 0; i < rows.getLength(); i++) {
             Element row = (Element) rows.item(i);
             TreeMap<Integer, String> celulas = new TreeMap<>();
@@ -247,7 +242,7 @@ public final class LeitorArquivo {
     private static List<String> textosCompartilhados(byte[] xml) throws IOException {
         List<String> lista = new ArrayList<>();
         if (xml == null) return lista;
-        NodeList sis = parse(xml).getElementsByTagNameNS("*", "si");
+        NodeList sis = lerXml(xml).getElementsByTagNameNS("*", "si");
         for (int i = 0; i < sis.getLength(); i++) lista.add(textoDe((Element) sis.item(i)));
         return lista;
     }
@@ -256,7 +251,7 @@ public final class LeitorArquivo {
     private static Set<Integer> estilosDeData(byte[] xml) throws IOException {
         Set<Integer> datas = new HashSet<>();
         if (xml == null) return datas;
-        Document doc = parse(xml);
+        Document doc = lerXml(xml);
         Map<Integer, String> formatos = new HashMap<>();
         NodeList nfs = doc.getElementsByTagNameNS("*", "numFmt");
         for (int i = 0; i < nfs.getLength(); i++) {
@@ -286,7 +281,7 @@ public final class LeitorArquivo {
     private static Map<String, String> relacoes(byte[] xml) throws IOException {
         Map<String, String> mapa = new HashMap<>();
         if (xml == null) return mapa;
-        NodeList rels = parse(xml).getElementsByTagNameNS("*", "Relationship");
+        NodeList rels = lerXml(xml).getElementsByTagNameNS("*", "Relationship");
         for (int i = 0; i < rels.getLength(); i++) {
             Element r = (Element) rels.item(i);
             mapa.put(r.getAttribute("Id"), r.getAttribute("Target"));
@@ -327,7 +322,7 @@ public final class LeitorArquivo {
         return partes;
     }
 
-    private static Document parse(byte[] xml) throws IOException {
+    private static Document lerXml(byte[] xml) throws IOException {
         try {
             DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
             f.setNamespaceAware(true);

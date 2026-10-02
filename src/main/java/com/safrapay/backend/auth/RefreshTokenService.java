@@ -79,7 +79,7 @@ public class RefreshTokenService {
     @Transactional(noRollbackFor = ResponseStatusException.class)
     public Renovacao renovar(String bruto) {
         if (bruto == null || bruto.isBlank()) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, SESSAO_EXPIRADA);
-        RefreshToken atual = repository.findByTokenHash(hash(bruto.trim()))
+        RefreshToken atual = repository.findByTokenHash(gerarHash(bruto.trim()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, SESSAO_EXPIRADA));
         Instant agora = relogio.instant();
         Usuario usuario = atual.getUsuario();
@@ -103,7 +103,7 @@ public class RefreshTokenService {
 
         String novo = criar(usuario, agora);
         atual.setDataRevogacao(agora);
-        atual.setSubstituidoPorHash(hash(novo));
+        atual.setSubstituidoPorHash(gerarHash(novo));
         repository.save(atual);
         return new Renovacao(usuario, novo);
     }
@@ -112,7 +112,7 @@ public class RefreshTokenService {
     @Transactional
     public void revogar(String bruto) {
         if (bruto == null || bruto.isBlank()) return;
-        repository.findByTokenHash(hash(bruto.trim())).ifPresent(t -> {
+        repository.findByTokenHash(gerarHash(bruto.trim())).ifPresent(t -> {
             if (t.getDataRevogacao() == null) {
                 t.setDataRevogacao(relogio.instant());
                 repository.save(t);
@@ -132,14 +132,14 @@ public class RefreshTokenService {
         String bruto = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         RefreshToken t = new RefreshToken();
         t.setUsuario(usuario);
-        t.setTokenHash(hash(bruto));
+        t.setTokenHash(gerarHash(bruto));
         t.setDataCriacao(agora);
         t.setDataExpiracao(agora.plus(validade));
         repository.save(t);
         return bruto;
     }
 
-    static String hash(String bruto) {
+    static String gerarHash(String bruto) {
         try {
             MessageDigest sha = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(sha.digest(bruto.getBytes(StandardCharsets.UTF_8)));

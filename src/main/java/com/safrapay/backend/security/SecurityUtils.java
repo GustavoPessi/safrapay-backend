@@ -14,8 +14,8 @@ public final class SecurityUtils {
     }
 
     public static Usuario usuarioLogado() {
-        UsuarioDetailsImpl details = (UsuarioDetailsImpl)
+        UsuarioAutenticado autenticado = (UsuarioAutenticado)
                 SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return details.getUsuario();
+        return autenticado.getUsuario();
     }
 }

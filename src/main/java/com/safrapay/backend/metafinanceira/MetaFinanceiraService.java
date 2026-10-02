@@ -142,10 +142,10 @@ public class MetaFinanceiraService {
         m.setSafra(safra);
         m.setDescricao(item.getDescricao());
         m.setValorAlvo(BigDecimal.valueOf(item.getValorAlvo()));
-        m.setPrazo(parseData(item.getPrazo()));
+        m.setPrazo(converterData(item.getPrazo()));
     }
 
-    private LocalDate parseData(String iso) {
+    private LocalDate converterData(String iso) {
         if (iso == null || iso.isBlank()) return null;
         try { return LocalDate.parse(iso); }
         catch (Exception e) { return null; }

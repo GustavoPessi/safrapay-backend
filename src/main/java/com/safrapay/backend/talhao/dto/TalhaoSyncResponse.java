@@ -1,7 +1,7 @@
 package com.safrapay.backend.talhao.dto;
 
 import com.safrapay.backend.entity.Talhao;
-import com.safrapay.backend.util.SyncDateUtil;
+import com.safrapay.backend.util.DataSyncUtil;
 
 public class TalhaoSyncResponse {
 
@@ -23,7 +23,7 @@ public class TalhaoSyncResponse {
         r.cultura = t.getCultura();
         r.latitude = t.getLatitude();
         r.longitude = t.getLongitude();
-        r.atualizadoEm = SyncDateUtil.formatar(t.getAtualizadoEm());
+        r.atualizadoEm = DataSyncUtil.formatar(t.getAtualizadoEm());
         return r;
     }
 

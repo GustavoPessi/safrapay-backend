@@ -142,11 +142,11 @@ public class AnotacaoMaquinaService {
     private void aplicarSync(AnotacaoMaquina a, AnotacaoMaquinaSyncRequest item, Maquina maquina) {
         a.setMaquina(maquina);
         a.setTexto(item.getTexto());
-        a.setData(parseData(item.getData()));
+        a.setData(converterData(item.getData()));
         a.setConcluida(Boolean.TRUE.equals(item.getConcluida()));
     }
 
-    private LocalDate parseData(String iso) {
+    private LocalDate converterData(String iso) {
         if (iso == null || iso.isBlank()) return null;
         try { return LocalDate.parse(iso); }
         catch (Exception e) { return null; }

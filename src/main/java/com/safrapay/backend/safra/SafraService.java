@@ -160,11 +160,11 @@ public class SafraService {
         s.setTalhao(talhao);
         s.setVariedade(item.getVariedade());
         s.setAnoSafra(item.getAnoSafra());
-        s.setDataInicio(parseData(item.getDataInicio()));
-        s.setDataFim(parseData(item.getDataFim()));
+        s.setDataInicio(converterData(item.getDataInicio()));
+        s.setDataFim(converterData(item.getDataFim()));
     }
 
-    private LocalDate parseData(String iso) {
+    private LocalDate converterData(String iso) {
         if (iso == null || iso.isBlank()) return null;
         try { return LocalDate.parse(iso); }
         catch (Exception e) { return null; }
