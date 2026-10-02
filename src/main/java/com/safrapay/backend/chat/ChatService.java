@@ -27,7 +27,8 @@ import java.util.Map;
 /**
  * Assistente de IA dentro do app: texto, foto de nota (etapa 2) e arquivo
  * (etapa 3) viram propostas de lançamento; perguntas viram CONSULTA (contrato
- * v2, 01/10/2026 — "a IA entende, o app calcula").
+ * v2, 01/10/2026 — "a IA entende, o app calcula"), inclusive pedir a foto de
+ * um comprovante guardado no celular (tipo COMPROVANTE, contrato v3, 02/10/2026).
  *
  * Recebe a conversa + o contexto do usuário (sem valores financeiros), pede ao
  * Claude que identifique despesas/receitas ou a pergunta e devolve tudo
@@ -49,7 +50,7 @@ public class ChatService {
     /** Contrato v2: pergunta do produtor; o app calcula o resultado a partir de "consulta". */
     static final String CONSULTA = "CONSULTA";
     static final java.util.Set<String> TIPOS_CONSULTA = java.util.Set.of(
-            "GASTOS", "RECEITAS", "SALDO", "LANCAMENTOS", "SAFRAS", "AREA", "METAS", "MAQUINAS");
+            "GASTOS", "RECEITAS", "SALDO", "LANCAMENTOS", "SAFRAS", "AREA", "METAS", "MAQUINAS", "COMPROVANTE");
     static final java.util.Set<String> SITUACOES = java.util.Set.of("ATIVAS", "ENCERRADAS", "TODAS");
     static final java.util.Set<String> AGRUPAMENTOS = java.util.Set.of("CATEGORIA", "SAFRA", "MES", "MAQUINA");
     static final int MAX_SUGESTOES = 5;
@@ -352,16 +353,21 @@ public class ChatService {
           .append("- Quando o produtor PERGUNTAR algo sobre os dados dele, use status CONSULTA, lancamentos vazio e preencha consulta com os filtros. ")
           .append("Tipos de consulta: GASTOS (despesas); RECEITAS; SALDO (receitas menos despesas: \"lucro\", \"resultado\", \"quanto sobrou\"); ")
           .append("LANCAMENTOS (\"últimos lançamentos\", \"o que eu lancei\"); SAFRAS (lista de safras); AREA (área de propriedades, talhões ou de uma cultura); ")
-          .append("METAS; MAQUINAS (gasto por máquina e manutenções/anotações pendentes).\n")
+          .append("METAS; MAQUINAS (gasto por máquina e manutenções/anotações pendentes); ")
+          .append("COMPROVANTE (ele quer VER a foto/nota/recibo de um lançamento: \"me manda a nota do diesel\", \"cadê o comprovante da ureia\").\n")
           .append("- Preencha só os filtros que o produtor disse; o resto fica null. safraUuid, propriedadeUuid, talhaoUuid e maquinaUuid só com uuids das listas abaixo ")
           .append("(\"com o trator\" → maquinaUuid do trator). categoria só com um nome da lista de categorias. ")
           .append("Cultura citada (\"na soja\", \"do milho\", \"área de milho\") vai em cultura (ex.: \"Soja\"), NÃO em safraUuid — ")
           .append("mesmo que só exista uma safra dessa cultura. safraUuid só quando ele falar de uma safra específica ")
           .append("(\"safra 2025/2026\", \"safra do talhão A\") ou escolher da lista. ")
           .append("situacao só para SAFRAS: ATIVAS (padrão), ENCERRADAS ou TODAS. ")
-          .append("agrupar só se ele pedir detalhamento: CATEGORIA, SAFRA, MES ou MAQUINA.\n")
+          .append("agrupar só se ele pedir detalhamento: CATEGORIA, SAFRA, MES ou MAQUINA. ")
+          .append("texto = palavra-chave do item ou fornecedor citado, para procurar na descrição (\"diesel\", \"ureia\", \"Agropecuária Silva\"), ")
+          .append("usado em COMPROVANTE, GASTOS, RECEITAS e LANCAMENTOS quando não houver categoria/máquina que diga o mesmo. ")
+          .append("valor = valor citado para achar um lançamento específico (\"a nota de 3 mil\" → 3000), só em COMPROVANTE e LANCAMENTOS.\n")
           .append("- Período: preencha dataInicio/dataFim só se ele disser um dia ou período (um dia só = mesma data nos dois). ")
-          .append("Se não disser, deixe as duas null: o app usa a safra/cultura/talhão inteiros quando houver esse filtro, senão o mês atual — ")
+          .append("Se não disser, deixe as duas null: em COMPROVANTE o app procura em todo o histórico; nos outros, ")
+          .append("o app usa a safra/cultura/talhão inteiros quando houver esse filtro, senão o mês atual — ")
           .append("nesse último caso a resposta deve deixar claro que é \"neste mês\".\n")
           .append("- Na CONSULTA a resposta é SÓ uma frase curta de introdução, SEM nenhum valor (ex.: \"Seus gastos em 09/08/2026:\", ")
           .append("\"Estas são suas safras em aberto:\", \"Seus gastos com combustível neste mês:\"). O app completa com o resultado calculado.\n")
@@ -636,6 +642,14 @@ public class ChatService {
         q.setSituacao(SITUACOES.contains(situacao) ? situacao : null);
         String agrupar = nn(textoOuNull(c.path("agrupar"))).toUpperCase(Locale.ROOT);
         q.setAgrupar(AGRUPAMENTOS.contains(agrupar) ? agrupar : null);
+
+        String texto = textoOuNull(c.path("texto"));
+        if (texto != null) {
+            texto = texto.replaceAll("\\s+", " ");
+            q.setTexto(texto.length() > MAX_SUGESTAO ? texto.substring(0, MAX_SUGESTAO).trim() : texto);
+        }
+        JsonNode valor = c.path("valor");
+        if (valor.isNumber() && valor.asDouble() > 0) q.setValor(Math.round(valor.asDouble() * 100.0) / 100.0);
         return q;
     }
 
@@ -801,7 +815,7 @@ public class ChatService {
                 "type": ["object", "null"],
                 "description": "Só quando status = CONSULTA (senão null): filtros da pergunta. O app calcula o resultado. Campos não ditos pelo produtor ficam null.",
                 "properties": {
-                  "tipo": {"type": "string", "enum": ["GASTOS", "RECEITAS", "SALDO", "LANCAMENTOS", "SAFRAS", "AREA", "METAS", "MAQUINAS"]},
+                  "tipo": {"type": "string", "enum": ["GASTOS", "RECEITAS", "SALDO", "LANCAMENTOS", "SAFRAS", "AREA", "METAS", "MAQUINAS", "COMPROVANTE"]},
                   "dataInicio": {"type": ["string", "null"], "description": "AAAA-MM-DD, ou null se o produtor não disse período."},
                   "dataFim": {"type": ["string", "null"], "description": "AAAA-MM-DD, ou null se o produtor não disse período."},
                   "safraUuid": {"type": ["string", "null"], "description": "uuid de uma safra da lista."},
@@ -811,7 +825,9 @@ public class ChatService {
                   "categoria": {"type": ["string", "null"], "description": "Nome exato de uma categoria da lista."},
                   "cultura": {"type": ["string", "null"], "description": "Cultura citada em geral (ex.: Soja)."},
                   "situacao": {"type": ["string", "null"], "description": "Só para SAFRAS: ATIVAS, ENCERRADAS ou TODAS (null = ATIVAS)."},
-                  "agrupar": {"type": ["string", "null"], "description": "Só se o produtor pedir detalhamento: CATEGORIA, SAFRA, MES ou MAQUINA."}
+                  "agrupar": {"type": ["string", "null"], "description": "Só se o produtor pedir detalhamento: CATEGORIA, SAFRA, MES ou MAQUINA."},
+                  "texto": {"type": ["string", "null"], "description": "Palavra-chave do item ou fornecedor para procurar na descrição (ex.: diesel)."},
+                  "valor": {"type": ["number", "null"], "description": "Valor citado para achar um lançamento específico (COMPROVANTE/LANCAMENTOS)."}
                 },
                 "required": ["tipo"]
               },
