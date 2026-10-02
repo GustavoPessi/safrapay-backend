@@ -439,11 +439,21 @@ public class ChatService {
           .append("com null nos campos que não souber (ex.: safraUuid null quando precisar perguntar a safra). ")
           .append("Nunca devolva lancamentos vazio quando houver um lançamento em andamento na conversa.\n")
           .append("- Se o produtor corrigir algo (ex.: \"não, foi 250\"), devolva a proposta inteira de novo, já corrigida.\n")
+          .append("- LANÇAMENTOS JÁ RESOLVIDOS: mensagens do assistente que começam com \"(Salvo no app:\" listam lançamentos que o produtor JÁ confirmou ")
+          .append("e foram gravados; \"(Proposta descartada pelo produtor)\" indica que a proposta anterior foi descartada. NUNCA proponha de novo ")
+          .append("um lançamento salvo ou descartado: em lancamentos vão SÓ os que ainda estão em aberto (ex.: o da foto nova). ")
+          .append("Se o produtor disser que um item da proposta já foi lançado ou está repetido, tire esse item da proposta. ")
+          .append("Para alterar ou apagar um lançamento já salvo, explique que é pela tela Finanças (abrir o lançamento e editar).\n")
           .append("- Valor muito fora do comum para o tipo de gasto (ex.: diesel de R$ 50.000): mantenha PROPOSTA, mas destaque o valor na resposta ")
           .append("pedindo para o produtor conferir.\n")
           .append("- FOTO: se vier uma foto de nota fiscal, cupom, recibo ou comprovante, leia o valor TOTAL (não os itens um a um, ")
           .append("a menos que o produtor peça), a data de emissão (use a data do documento, convertida para AAAA-MM-DD), o fornecedor e o que foi comprado; ")
-          .append("monte uma despesa com descrição curta (ex.: \"Adubo NPK - Agropecuária Silva\") e escolha a categoria pelos itens. ")
+          .append("monte uma despesa com descrição no formato \"<o que foi comprado> - <fornecedor>\", usando os nomes como aparecem na nota ")
+          .append("(ex.: \"Adubo NPK - Agropecuária Silva\", \"Pimenta - Centro de Jardinagem Junkes\"; nunca só uma categoria genérica), ")
+          .append("para o produtor achar depois, e escolha a categoria pelos itens. Marque doComprovante = true SÓ nos lançamentos que vieram da foto ")
+          .append("(o app guarda a foto como comprovante neles), inclusive nas mensagens seguintes enquanto esse lançamento estiver em aberto; ")
+          .append("nos demais, false. Se a data do documento for antiga (mais de 6 meses antes de hoje ou antes do início da safra escolhida), ")
+          .append("mantenha a data do documento, mas destaque-a na resposta para o produtor conferir. ")
           .append("Nota de venda da produção (o produtor vendendo) é receita. Se a foto estiver ilegível ou cortada, peça outra foto. ")
           .append("Se a foto não for um documento com valor (ex.: máquina quebrada), use SEM_LANCAMENTO e explique que, para lançar, precisa do valor.\n")
           .append("- ARQUIVO: se vier um arquivo anexado (planilha, CSV ou bloco de notas), cada linha/registro que for um lançamento ")
@@ -487,6 +497,10 @@ public class ChatService {
           .append("texto = palavra-chave do item ou fornecedor citado, para procurar na descrição (\"diesel\", \"ureia\", \"Agropecuária Silva\"), ")
           .append("usado em COMPROVANTE, GASTOS, RECEITAS e LANCAMENTOS quando não houver categoria/máquina que diga o mesmo. ")
           .append("valor = valor citado para achar um lançamento específico (\"a nota de 3 mil\" → 3000), só em COMPROVANTE e LANCAMENTOS.\n")
+          .append("- COMPROVANTE: se ele falar de QUANDO mandou a foto (\"a nota que te enviei hoje\"), isso não é a data do lançamento ")
+          .append("(a nota pode ser antiga): deixe as datas null — o app mostra primeiro os comprovantes guardados mais recentemente. ")
+          .append("Se ele disser o valor, use valor e deixe texto null (a descrição pode usar outras palavras); use texto só com o nome do item ")
+          .append("ou do fornecedor quando não houver valor.\n")
           .append("- Período: preencha dataInicio/dataFim só se ele disser um dia ou período (um dia só = mesma data nos dois). ")
           .append("Se não disser, deixe as duas null: em COMPROVANTE o app procura em todo o histórico; nos outros, ")
           .append("o app usa a safra/cultura/talhão inteiros quando houver esse filtro, senão o mês atual — ")
@@ -676,6 +690,7 @@ public class ChatService {
                 faltaSafra = true;
             }
 
+            l.setDoComprovante(item.path("doComprovante").asBoolean(false));
             l.setCamposFaltando(faltando);
             if (!faltando.isEmpty()) faltaAlgo = true;
             resp.getLancamentos().add(l);
@@ -928,9 +943,10 @@ public class ChatService {
                     "categoria": {"type": ["string", "null"], "description": "Só para despesa: nome exato de uma categoria da lista. null para receita."},
                     "safraUuid": {"type": ["string", "null"], "description": "uuid de uma safra da lista, ou null se precisar perguntar."},
                     "maquinaUuid": {"type": ["string", "null"], "description": "uuid de uma máquina da lista, só se o produtor citar uma máquina."},
+                    "doComprovante": {"type": "boolean", "description": "true só se este lançamento veio da foto de nota/recibo enviada na conversa (o app guarda a foto como comprovante nele)."},
                     "safraCitada": {"type": "boolean", "description": "true só se o produtor indicou a safra nesta conversa (cultura, talhão, ano, propriedade ou escolha da lista); false se você escolheu sozinho."}
                   },
-                  "required": ["tipo", "valor", "data", "descricao", "categoria", "safraUuid", "maquinaUuid", "safraCitada"]
+                  "required": ["tipo", "valor", "data", "descricao", "categoria", "safraUuid", "maquinaUuid", "safraCitada", "doComprovante"]
                 }
               },
               "consulta": {
