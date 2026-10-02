@@ -49,7 +49,7 @@ public class ChatMensagemResponse {
      * no Room e mostra os números. Campos null = sem esse filtro.
      */
     public static class Consulta {
-        /** GASTOS | RECEITAS | SALDO | LANCAMENTOS | SAFRAS | AREA | METAS | MAQUINAS */
+        /** GASTOS | RECEITAS | SALDO | LANCAMENTOS | SAFRAS | AREA | METAS | MAQUINAS | COMPROVANTE (v3) */
         private String tipo;
         /** yyyy-MM-dd */
         private String dataInicio;
@@ -67,6 +67,10 @@ public class ChatMensagemResponse {
         private String situacao;
         /** CATEGORIA | SAFRA | MES | MAQUINA */
         private String agrupar;
+        /** v3: palavra-chave procurada na descrição do lançamento (ex.: "diesel"). */
+        private String texto;
+        /** v3: valor citado pelo produtor (ex.: "a nota de 3 mil" = 3000). */
+        private Double valor;
 
         public String getTipo() { return tipo; }
         public void setTipo(String tipo) { this.tipo = tipo; }
@@ -90,6 +94,10 @@ public class ChatMensagemResponse {
         public void setSituacao(String situacao) { this.situacao = situacao; }
         public String getAgrupar() { return agrupar; }
         public void setAgrupar(String agrupar) { this.agrupar = agrupar; }
+        public String getTexto() { return texto; }
+        public void setTexto(String texto) { this.texto = texto; }
+        public Double getValor() { return valor; }
+        public void setValor(Double valor) { this.valor = valor; }
     }
 
     public static class LancamentoProposto {
