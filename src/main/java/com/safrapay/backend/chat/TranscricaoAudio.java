@@ -14,39 +14,43 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestClient;
 
 /**
- * Transcrição de mensagens de voz (02/10/2026) pela API de áudio da OpenAI
- * (padrão: gpt-4o-mini-transcribe). Serviço separado do chat de propósito: o
+ * Transcrição de mensagens de voz (02/10/2026) por qualquer API de transcrição
+ * no formato da OpenAI (POST multipart em /audio/transcriptions): OpenAI
+ * (padrão, gpt-4o-mini-transcribe) ou Groq (Whisper), trocando só URL, modelo e
+ * chave no .env. Serviço separado do chat de propósito: o
  * webhook do WhatsApp vai reaproveitar o mesmo (baixa a mídia e chama
  * {@link #transcrever}).
  *
  * O áudio não é guardado (LGPD): vai para a API, volta o texto e os bytes são
  * descartados. No log ficam só formato, tamanho e quantidade de caracteres.
  *
- * A chave vem de OPENAI_API_KEY (só no .env da EC2). Sem chave, mensagens de
- * voz respondem 503 e o resto do chat funciona normalmente.
+ * A chave vem de IA_TRANSCRICAO_API_KEY (ou OPENAI_API_KEY), só no .env da EC2.
+ * Sem chave, mensagens de voz respondem 503 e o resto do chat funciona.
  */
 @Component
 public class TranscricaoAudio {
 
     private static final Logger log = LoggerFactory.getLogger(TranscricaoAudio.class);
-    private static final String URL = "https://api.openai.com/v1/audio/transcriptions";
 
     /** Formato identificado pelos bytes do arquivo (extensão e tipo enviados à API). */
     public record Formato(String extensao, String mime) {}
 
     private final RestClient http;
+    private final String url;
     private final String chaveApi;
     private final String modelo;
 
     public TranscricaoAudio(RestClient.Builder builder,
                             @Value("${ia.transcricao.api-key:}") String chaveApi,
-                            @Value("${ia.transcricao.modelo:gpt-4o-mini-transcribe}") String modelo) {
+                            @Value("${ia.transcricao.modelo:gpt-4o-mini-transcribe}") String modelo,
+                            @Value("${ia.transcricao.url:https://api.openai.com/v1/audio/transcriptions}") String url) {
         SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
         fabrica.setConnectTimeout(10_000);
         fabrica.setReadTimeout(60_000);
         this.http = builder.requestFactory(fabrica).build();
         this.chaveApi = chaveApi;
         this.modelo = modelo;
+        this.url = url;
     }
 
     public boolean configurado() {
@@ -95,7 +99,7 @@ public class TranscricaoAudio {
         if (dica != null && !dica.isBlank()) corpo.add("prompt", dica);
 
         JsonNode resposta = http.post()
-                .uri(URL)
+                .uri(url)
                 .header("Authorization", "Bearer " + chaveApi)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(corpo)
