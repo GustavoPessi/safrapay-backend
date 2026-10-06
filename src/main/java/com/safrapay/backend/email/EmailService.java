@@ -77,6 +77,35 @@ public class EmailService {
         enviar(destinatario, "Redefinicao de senha - SafraPay", corpoHtml, corpoTexto);
     }
 
+    /**
+     * Convite para a equipe (multiusuario, 06/10/2026). Nao leva link de
+     * aceite: o convite aparece no app (Perfil / aviso de convite) para a conta
+     * com este e-mail. Quem ainda nao tem conta e orientado a se cadastrar com
+     * o mesmo endereco.
+     */
+    public void enviarConviteEquipe(String destinatario, String donoNome, String papel, boolean temConta) {
+        String funcao = "GERENTE".equals(papel) ? "gerente" : "colaborador";
+        String passo = temConta
+                ? "Abra o app SafraPay e toque em Aceitar no aviso de convite (ou em Perfil)."
+                : "Baixe o app SafraPay e crie sua conta usando este mesmo e-mail (" + destinatario
+                        + "). Depois do cadastro, o convite aparece no app para voce aceitar.";
+        String corpoHtml = "<p>Ola!</p>"
+                + "<p><b>" + escaparHtml(donoNome) + "</b> convidou voce para a equipe da fazenda no SafraPay, como <b>"
+                + funcao + "</b>.</p>"
+                + "<p>" + escaparHtml(passo) + "</p>"
+                + "<p>Se voce nao conhece essa pessoa, pode ignorar esta mensagem.</p>";
+        String corpoTexto = "Ola!\n\n"
+                + donoNome + " convidou voce para a equipe da fazenda no SafraPay, como " + funcao + ".\n\n"
+                + passo + "\n\n"
+                + "Se voce nao conhece essa pessoa, pode ignorar esta mensagem.";
+        enviar(destinatario, "Convite para a equipe no SafraPay", corpoHtml, corpoTexto);
+    }
+
+    private static String escaparHtml(String texto) {
+        if (texto == null) return "";
+        return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
     private void enviar(String destinatario, String assunto, String corpoHtml, String corpoTexto) {
         try {
             SendEmailRequest request = SendEmailRequest.builder()

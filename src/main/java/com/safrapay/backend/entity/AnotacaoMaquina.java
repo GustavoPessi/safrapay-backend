@@ -10,15 +10,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 /**
  * Anotacao de maquina, igual ao schema local do app: texto + data opcional
  * (no app funciona como data da revisao/prazo) + concluida.
  * "data" opcional e "concluida" entraram na V3 (Fase 4 do sync, 28/09/2026).
- * Os campos de ciclo de vida do modo multi-usuario (prazo/status/responsavel/
- * concluido_por) sao uma fase futura - ver Notion, pagina
- * "Backend & Multi-usuario".
+ * Multiusuario (V5, 06/10/2026): a anotacao vira tarefa, com prazo,
+ * responsavel, quem criou e quem concluiu. "concluida" continua sendo o status
+ * (pendente/realizada); "atrasada" e calculada (pendente e prazo < hoje).
  */
 @Getter
 @Setter
@@ -38,4 +39,43 @@ public class AnotacaoMaquina extends BaseSyncEntity {
 
     @Column(nullable = false)
     private boolean concluida = false;
+
+    /** Prazo da tarefa (opcional). */
+    private LocalDate prazo;
+
+    /** Quem deve fazer (dono ou membro da equipe); null = sem responsável. */
+    @ManyToOne
+    @JoinColumn(name = "responsavel_usuario_id")
+    private Usuario responsavel;
+
+    @Column(name = "concluido_em")
+    private Instant concluidoEm;
+
+    @ManyToOne
+    @JoinColumn(name = "concluido_por_usuario_id")
+    private Usuario concluidoPor;
+
+    @ManyToOne
+    @JoinColumn(name = "criado_por_usuario_id")
+    private Usuario criadoPor;
+
+    /** Pendente com prazo vencido (não é guardado no banco). */
+    public boolean isAtrasada(LocalDate hoje) {
+        return !concluida && prazo != null && prazo.isBefore(hoje);
+    }
+
+    /**
+     * Marca/desmarca como realizada registrando quem e quando. Só mexe nos
+     * campos de conclusão quando o status muda de fato.
+     */
+    public void definirConcluida(boolean nova, Usuario quem) {
+        if (nova && !concluida) {
+            concluidoEm = Instant.now();
+            concluidoPor = quem;
+        } else if (!nova) {
+            concluidoEm = null;
+            concluidoPor = null;
+        }
+        concluida = nova;
+    }
 }

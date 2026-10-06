@@ -17,4 +17,7 @@ public interface AnotacaoMaquinaRepository extends JpaRepository<AnotacaoMaquina
     List<AnotacaoMaquina> findByMaquina_Usuario_Id(Long usuarioId);
 
     List<AnotacaoMaquina> findByMaquina_Usuario_IdAndAtualizadoEmAfter(Long usuarioId, Instant desde);
+    // Multiusuario (V5): tarefas da fazenda do dono, com a maquina ja carregada.
+    @org.springframework.data.jpa.repository.Query("select a from AnotacaoMaquina a join fetch a.maquina m where m.usuario.id = :donoId")
+    List<AnotacaoMaquina> tarefasDoDono(@org.springframework.data.repository.query.Param("donoId") Long donoId);
 }

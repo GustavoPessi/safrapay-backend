@@ -26,7 +26,7 @@ public class PropriedadeService {
     }
 
     public List<PropriedadeResponse> listar() {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         return propriedadeRepository.findByUsuarioId(usuario.getId()).stream()
                 .map(PropriedadeResponse::de)
                 .toList();
@@ -38,7 +38,7 @@ public class PropriedadeService {
 
     public PropriedadeResponse criar(PropriedadeRequest request) {
         Propriedade p = new Propriedade();
-        p.setUsuario(SecurityUtils.usuarioLogado());
+        p.setUsuario(SecurityUtils.contaDados());
         aplicar(p, request);
         propriedadeRepository.save(p);
         return PropriedadeResponse.de(p);
@@ -60,7 +60,7 @@ public class PropriedadeService {
         Propriedade p = propriedadeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Propriedade nao encontrada"));
 
-        if (!p.getUsuario().getId().equals(SecurityUtils.usuarioLogado().getId())) {
+        if (!p.getUsuario().getId().equals(SecurityUtils.contaDados().getId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Propriedade nao encontrada");
         }
         return p;
@@ -72,7 +72,7 @@ public class PropriedadeService {
      * usado pelo TalhaoService pra resolver o pai antes de gravar um talhao.
      */
     public Propriedade buscarEntidadePorUuid(String uuid) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         return propriedadeRepository.findByUuidAndUsuarioId(uuid, usuario.getId()).orElse(null);
     }
 
@@ -102,7 +102,7 @@ public class PropriedadeService {
      * Devolve o estado final de cada item (aceito ou nao) pra o app reconciliar.
      */
     public List<PropriedadeSyncResponse> sincronizarPush(List<PropriedadeSyncRequest> itens) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<PropriedadeSyncResponse> respostas = new ArrayList<>();
         if (itens == null) return respostas;
 
@@ -136,7 +136,7 @@ public class PropriedadeService {
 
     /** Devolve as propriedades do usuario logado alteradas depois de "desde" (ou todas, se vazio). */
     public List<PropriedadeSyncResponse> sincronizarPull(String desde) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<Propriedade> lista;
         if (desde == null || desde.isBlank()) {
             lista = propriedadeRepository.findByUsuarioId(usuario.getId());

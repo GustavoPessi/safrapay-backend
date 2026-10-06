@@ -86,7 +86,7 @@ public class ReceitaService {
 
     @Transactional
     public List<ReceitaSyncResponse> sincronizarPush(List<ReceitaSyncRequest> itens) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<ReceitaSyncResponse> respostas = new ArrayList<>();
         if (itens == null) return respostas;
 
@@ -125,7 +125,7 @@ public class ReceitaService {
 
     @Transactional(readOnly = true)
     public List<ReceitaSyncResponse> sincronizarPull(String desde) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<Receita> lista;
         if (desde == null || desde.isBlank()) {
             lista = receitaRepository.findBySafra_Talhao_Propriedade_Usuario_Id(usuario.getId());
