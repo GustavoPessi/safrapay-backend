@@ -13,6 +13,13 @@ public class AnotacaoMaquinaSyncResponse {
     private String data;
     private Boolean concluida;
     private String atualizadoEm;
+    // Multiusuario (V5): o app guarda os nomes pra exibir (Room nao tem tabela de usuarios).
+    private String prazo;
+    private String responsavelUuid;
+    private String responsavelNome;
+    private String concluidoEm;
+    private String concluidoPorNome;
+    private String criadoPorNome;
 
     public static AnotacaoMaquinaSyncResponse de(AnotacaoMaquina a) {
         AnotacaoMaquinaSyncResponse r = new AnotacaoMaquinaSyncResponse();
@@ -22,6 +29,12 @@ public class AnotacaoMaquinaSyncResponse {
         r.data = a.getData() == null ? null : a.getData().format(DateTimeFormatter.ISO_LOCAL_DATE);
         r.concluida = a.isConcluida();
         r.atualizadoEm = DataSyncUtil.formatar(a.getAtualizadoEm());
+        r.prazo = a.getPrazo() == null ? null : a.getPrazo().format(DateTimeFormatter.ISO_LOCAL_DATE);
+        r.responsavelUuid = a.getResponsavel() == null ? null : a.getResponsavel().getUuid();
+        r.responsavelNome = a.getResponsavel() == null ? null : a.getResponsavel().getNome();
+        r.concluidoEm = DataSyncUtil.formatar(a.getConcluidoEm());
+        r.concluidoPorNome = a.getConcluidoPor() == null ? null : a.getConcluidoPor().getNome();
+        r.criadoPorNome = a.getCriadoPor() == null ? null : a.getCriadoPor().getNome();
         return r;
     }
 
@@ -31,4 +44,10 @@ public class AnotacaoMaquinaSyncResponse {
     public String getData() { return data; }
     public Boolean getConcluida() { return concluida; }
     public String getAtualizadoEm() { return atualizadoEm; }
+    public String getPrazo() { return prazo; }
+    public String getResponsavelUuid() { return responsavelUuid; }
+    public String getResponsavelNome() { return responsavelNome; }
+    public String getConcluidoEm() { return concluidoEm; }
+    public String getConcluidoPorNome() { return concluidoPorNome; }
+    public String getCriadoPorNome() { return criadoPorNome; }
 }

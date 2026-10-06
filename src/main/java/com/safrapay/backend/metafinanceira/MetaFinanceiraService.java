@@ -86,7 +86,7 @@ public class MetaFinanceiraService {
 
     @Transactional
     public List<MetaFinanceiraSyncResponse> sincronizarPush(List<MetaFinanceiraSyncRequest> itens) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<MetaFinanceiraSyncResponse> respostas = new ArrayList<>();
         if (itens == null) return respostas;
 
@@ -122,7 +122,7 @@ public class MetaFinanceiraService {
 
     @Transactional(readOnly = true)
     public List<MetaFinanceiraSyncResponse> sincronizarPull(String desde) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<MetaFinanceira> lista;
         if (desde == null || desde.isBlank()) {
             lista = repository.findBySafra_Talhao_Propriedade_Usuario_Id(usuario.getId());

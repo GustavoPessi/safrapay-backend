@@ -7,6 +7,7 @@ import com.safrapay.backend.anotacaomaquina.dto.AnotacaoMaquinaSyncResponse;
 import com.safrapay.backend.entity.AnotacaoMaquina;
 import com.safrapay.backend.entity.Maquina;
 import com.safrapay.backend.entity.Usuario;
+import com.safrapay.backend.equipe.EquipeService;
 import com.safrapay.backend.maquina.MaquinaService;
 import com.safrapay.backend.repository.AnotacaoMaquinaRepository;
 import com.safrapay.backend.security.SecurityUtils;
@@ -18,17 +19,22 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AnotacaoMaquinaService {
 
     private final AnotacaoMaquinaRepository repository;
     private final MaquinaService maquinaService;
+    private final EquipeService equipeService;
 
-    public AnotacaoMaquinaService(AnotacaoMaquinaRepository repository, MaquinaService maquinaService) {
+    public AnotacaoMaquinaService(AnotacaoMaquinaRepository repository, MaquinaService maquinaService,
+                                  EquipeService equipeService) {
         this.repository = repository;
         this.maquinaService = maquinaService;
+        this.equipeService = equipeService;
     }
 
     public List<AnotacaoMaquinaResponse> listarPorMaquina(Long maquinaId) {
@@ -44,6 +50,7 @@ public class AnotacaoMaquinaService {
         Maquina maquina = maquinaService.buscarEntidade(request.getMaquinaId());
         AnotacaoMaquina a = new AnotacaoMaquina();
         a.setMaquina(maquina);
+        a.setCriadoPor(SecurityUtils.usuarioLogado());
         aplicar(a, request);
         repository.save(a);
         return AnotacaoMaquinaResponse.de(a);
@@ -73,7 +80,7 @@ public class AnotacaoMaquinaService {
     private void aplicar(AnotacaoMaquina a, AnotacaoMaquinaRequest request) {
         a.setTexto(request.getTexto());
         a.setData(request.getData());
-        a.setConcluida(Boolean.TRUE.equals(request.getConcluida()));
+        a.definirConcluida(Boolean.TRUE.equals(request.getConcluida()), SecurityUtils.usuarioLogado());
     }
 
     // ----------------------------------------------------------------------
@@ -88,9 +95,12 @@ public class AnotacaoMaquinaService {
 
     @Transactional
     public List<AnotacaoMaquinaSyncResponse> sincronizarPush(List<AnotacaoMaquinaSyncRequest> itens) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<AnotacaoMaquinaSyncResponse> respostas = new ArrayList<>();
         if (itens == null) return respostas;
+        // Quem pode ser responsavel: o dono e os membros aceitos da equipe dele.
+        Map<String, Usuario> pessoas = new HashMap<>();
+        for (Usuario p : equipeService.pessoasDaFazenda(usuario)) pessoas.put(p.getUuid(), p);
 
         for (AnotacaoMaquinaSyncRequest item : itens) {
             if (item.getUuid() == null || item.getMaquinaUuid() == null
@@ -110,10 +120,11 @@ public class AnotacaoMaquinaService {
             if (a == null) {
                 a = new AnotacaoMaquina();
                 a.setUuid(item.getUuid());
-                aplicarSync(a, item, maquina);
+                a.setCriadoPor(SecurityUtils.usuarioLogado());
+                aplicarSync(a, item, maquina, pessoas);
                 repository.save(a);
             } else if (atualizadoCliente.isAfter(a.getAtualizadoEm())) {
-                aplicarSync(a, item, maquina);
+                aplicarSync(a, item, maquina, pessoas);
                 repository.save(a);
             }
             respostas.add(AnotacaoMaquinaSyncResponse.de(a));
@@ -123,7 +134,7 @@ public class AnotacaoMaquinaService {
 
     @Transactional(readOnly = true)
     public List<AnotacaoMaquinaSyncResponse> sincronizarPull(String desde) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<AnotacaoMaquina> lista;
         if (desde == null || desde.isBlank()) {
             lista = repository.findByMaquina_Usuario_Id(usuario.getId());
@@ -139,11 +150,19 @@ public class AnotacaoMaquinaService {
         return lista.stream().map(AnotacaoMaquinaSyncResponse::de).toList();
     }
 
-    private void aplicarSync(AnotacaoMaquina a, AnotacaoMaquinaSyncRequest item, Maquina maquina) {
+    private void aplicarSync(AnotacaoMaquina a, AnotacaoMaquinaSyncRequest item, Maquina maquina,
+                             Map<String, Usuario> pessoas) {
         a.setMaquina(maquina);
         a.setTexto(item.getTexto());
         a.setData(converterData(item.getData()));
-        a.setConcluida(Boolean.TRUE.equals(item.getConcluida()));
+        // Multiusuario (V5): app antigo nao manda prazo/responsavel -> mantem o do servidor.
+        if (item.prazoInformado()) a.setPrazo(converterData(item.getPrazo()));
+        if (item.responsavelInformado()) {
+            String uuid = item.getResponsavelUuid();
+            a.setResponsavel(uuid == null ? null : pessoas.get(uuid)); // fora da equipe -> sem responsavel
+        }
+        // Registra quem/quando concluiu quando o status muda.
+        a.definirConcluida(Boolean.TRUE.equals(item.getConcluida()), SecurityUtils.usuarioLogado());
     }
 
     private LocalDate converterData(String iso) {

@@ -75,7 +75,7 @@ public class SafraService {
     // safra-pai a partir do uuid mandado pelo app. Mesmo padrao de
     // TalhaoService.buscarEntidadePorUuid.
     public Safra buscarEntidadePorUuid(String uuid) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         return safraRepository.findByUuidAndTalhao_Propriedade_Usuario_Id(uuid, usuario.getId()).orElse(null);
     }
 
@@ -102,7 +102,7 @@ public class SafraService {
 
     @Transactional
     public List<SafraSyncResponse> sincronizarPush(List<SafraSyncRequest> itens) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<SafraSyncResponse> respostas = new ArrayList<>();
         if (itens == null) return respostas;
 
@@ -140,7 +140,7 @@ public class SafraService {
 
     @Transactional(readOnly = true)
     public List<SafraSyncResponse> sincronizarPull(String desde) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<Safra> lista;
         if (desde == null || desde.isBlank()) {
             lista = safraRepository.findByTalhao_Propriedade_Usuario_Id(usuario.getId());

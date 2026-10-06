@@ -78,7 +78,7 @@ public class TalhaoService {
     // partir do uuid mandado pelo app (nunca um id local ou do servidor).
     // Mesmo padrao de PropriedadeService.buscarEntidadePorUuid.
     public Talhao buscarEntidadePorUuid(String uuid) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         return talhaoRepository.findByUuidAndPropriedade_Usuario_Id(uuid, usuario.getId()).orElse(null);
     }
 
@@ -110,7 +110,7 @@ public class TalhaoService {
 
     @Transactional
     public List<TalhaoSyncResponse> sincronizarPush(List<TalhaoSyncRequest> itens) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<TalhaoSyncResponse> respostas = new ArrayList<>();
         if (itens == null) return respostas;
 
@@ -148,7 +148,7 @@ public class TalhaoService {
 
     @Transactional(readOnly = true)
     public List<TalhaoSyncResponse> sincronizarPull(String desde) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<Talhao> lista;
         if (desde == null || desde.isBlank()) {
             lista = talhaoRepository.findByPropriedade_Usuario_Id(usuario.getId());

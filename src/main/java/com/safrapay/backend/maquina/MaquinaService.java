@@ -27,7 +27,7 @@ public class MaquinaService {
     }
 
     public List<MaquinaResponse> listar() {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         return maquinaRepository.findByUsuarioId(usuario.getId()).stream()
                 .map(MaquinaResponse::de)
                 .toList();
@@ -39,7 +39,7 @@ public class MaquinaService {
 
     public MaquinaResponse criar(MaquinaRequest request) {
         Maquina m = new Maquina();
-        m.setUsuario(SecurityUtils.usuarioLogado());
+        m.setUsuario(SecurityUtils.contaDados());
         aplicar(m, request);
         maquinaRepository.save(m);
         return MaquinaResponse.de(m);
@@ -61,7 +61,7 @@ public class MaquinaService {
         Maquina m = maquinaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Maquina nao encontrada"));
 
-        if (!m.getUsuario().getId().equals(SecurityUtils.usuarioLogado().getId())) {
+        if (!m.getUsuario().getId().equals(SecurityUtils.contaDados().getId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Maquina nao encontrada");
         }
         return m;
@@ -88,13 +88,13 @@ public class MaquinaService {
 
     /** Usado pela sincronizacao de AnotacaoMaquina pra resolver a maquina-pai. */
     public Maquina buscarEntidadePorUuid(String uuid) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         return maquinaRepository.findByUuidAndUsuarioId(uuid, usuario.getId()).orElse(null);
     }
 
     @Transactional
     public List<MaquinaSyncResponse> sincronizarPush(List<MaquinaSyncRequest> itens) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<MaquinaSyncResponse> respostas = new ArrayList<>();
         if (itens == null) return respostas;
 
@@ -126,7 +126,7 @@ public class MaquinaService {
 
     @Transactional(readOnly = true)
     public List<MaquinaSyncResponse> sincronizarPull(String desde) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<Maquina> lista;
         if (desde == null || desde.isBlank()) {
             lista = maquinaRepository.findByUsuarioId(usuario.getId());

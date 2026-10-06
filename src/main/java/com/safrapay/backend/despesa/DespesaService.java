@@ -122,7 +122,7 @@ public class DespesaService {
 
     @Transactional
     public List<DespesaSyncResponse> sincronizarPush(List<DespesaSyncRequest> itens) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<DespesaSyncResponse> respostas = new ArrayList<>();
         if (itens == null) return respostas;
 
@@ -164,7 +164,7 @@ public class DespesaService {
 
     @Transactional(readOnly = true)
     public List<DespesaSyncResponse> sincronizarPull(String desde) {
-        Usuario usuario = SecurityUtils.usuarioLogado();
+        Usuario usuario = SecurityUtils.contaDados();
         List<Despesa> lista;
         if (desde == null || desde.isBlank()) {
             lista = despesaRepository.findBySafra_Talhao_Propriedade_Usuario_Id(usuario.getId());
