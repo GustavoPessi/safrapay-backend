@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.math.BigDecimal;
 
 @Getter
@@ -44,4 +45,12 @@ public class Propriedade extends BaseSyncEntity {
 
     private Double latitude;   // coordenada GPS - opcional (Geolocalizacao Nivel 1, 18/09/2026)
     private Double longitude;  // coordenada GPS - opcional (Geolocalizacao Nivel 1, 18/09/2026)
+
+    /**
+     * Exclusão sincronizada (V6, 08/10/2026): preenchido quando o item foi excluído (no app
+     * ou em cascata no servidor). O item some das listas e do pull normal e vira um aviso de
+     * exclusão em GET /api/exclusoes/sync, pros outros aparelhos apagarem também.
+     */
+    @Column(name = "excluido_em")
+    private Instant excluidoEm;
 }

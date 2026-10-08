@@ -78,4 +78,12 @@ public class AnotacaoMaquina extends BaseSyncEntity {
         }
         concluida = nova;
     }
+
+    /**
+     * Exclusão sincronizada (V6, 08/10/2026): preenchido quando o item foi excluído (no app
+     * ou em cascata no servidor). O item some das listas e do pull normal e vira um aviso de
+     * exclusão em GET /api/exclusoes/sync, pros outros aparelhos apagarem também.
+     */
+    @Column(name = "excluido_em")
+    private Instant excluidoEm;
 }

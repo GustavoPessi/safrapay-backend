@@ -118,6 +118,8 @@ public class AnotacaoMaquinaService {
             if (maquina == null) continue; // maquina-pai ainda nao sincronizou
 
             AnotacaoMaquina a = repository.findByUuidAndMaquina_Usuario_Id(item.getUuid(), usuario.getId()).orElse(null);
+            // Excluído (V6): a exclusão vence; não ressuscita nem devolve o item.
+            if (a != null && a.getExcluidoEm() != null) continue;
             if (a == null) {
                 a = new AnotacaoMaquina();
                 a.setUuid(item.getUuid());

@@ -149,6 +149,8 @@ public class DespesaService {
             CategoriaDespesa categoria = resolverCategoria(item.getCategoriaNome());
 
             Despesa d = despesaRepository.findByUuidAndSafra_Talhao_Propriedade_Usuario_Id(item.getUuid(), usuario.getId()).orElse(null);
+            // Excluído (V6): a exclusão vence; não ressuscita nem devolve o item.
+            if (d != null && d.getExcluidoEm() != null) continue;
             if (d == null) {
                 d = new Despesa();
                 d.setUuid(item.getUuid());
@@ -191,7 +193,8 @@ public class DespesaService {
         if (item.getMaquinaUuid() == null) {
             d.setMaquina(null); // o app removeu o vinculo com a maquina
         } else {
-            Maquina maquina = maquinaRepository.findByUuidAndUsuarioId(item.getMaquinaUuid(), usuario.getId()).orElse(null);
+            Maquina maquina = maquinaRepository.findByUuidAndUsuarioId(item.getMaquinaUuid(), usuario.getId())
+                    .filter(x -> x.getExcluidoEm() == null).orElse(null);
             if (maquina != null) d.setMaquina(maquina);
             // maquina desconhecida (ainda nao sincronizada): mantem o que ja havia
         }

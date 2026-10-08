@@ -74,7 +74,9 @@ public class PropriedadeService {
      */
     public Propriedade buscarEntidadePorUuid(String uuid) {
         Usuario usuario = SecurityUtils.contaDados();
-        return propriedadeRepository.findByUuidAndUsuarioId(uuid, usuario.getId()).orElse(null);
+        return propriedadeRepository.findByUuidAndUsuarioId(uuid, usuario.getId())
+                .filter(x -> x.getExcluidoEm() == null) // pai excluído = como se não existisse
+                .orElse(null);
     }
 
     private void aplicar(Propriedade p, PropriedadeRequest request) {
@@ -118,6 +120,8 @@ public class PropriedadeService {
             }
 
             Propriedade p = propriedadeRepository.findByUuidAndUsuarioId(item.getUuid(), usuario.getId()).orElse(null);
+            // Excluído (V6): a exclusão vence; não ressuscita nem devolve o item.
+            if (p != null && p.getExcluidoEm() != null) continue;
             if (p == null) {
                 p = new Propriedade();
                 p.setUuid(item.getUuid());
