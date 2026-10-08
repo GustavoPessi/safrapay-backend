@@ -27,6 +27,8 @@ public class TarefaResponse {
     private String criadoPorNome;
     private String concluidoEm;
     private String concluidoPorNome;
+    /** Quando a tarefa foi criada/reportada (instante UTC ISO, com hora) — ex.: "Reportado em 08/10 às 14:32". */
+    private String criadoEm;
 
     public static class Responsavel {
         private final String uuid;
@@ -57,6 +59,7 @@ public class TarefaResponse {
         r.criadoPorNome = a.getCriadoPor() == null ? null : a.getCriadoPor().getNome();
         r.concluidoEm = DataSyncUtil.formatar(a.getConcluidoEm());
         r.concluidoPorNome = a.getConcluidoPor() == null ? null : a.getConcluidoPor().getNome();
+        r.criadoEm = DataSyncUtil.formatar(a.getCriadoEm());
         return r;
     }
 
@@ -73,4 +76,5 @@ public class TarefaResponse {
     public String getCriadoPorNome() { return criadoPorNome; }
     public String getConcluidoEm() { return concluidoEm; }
     public String getConcluidoPorNome() { return concluidoPorNome; }
+    public String getCriadoEm() { return criadoEm; }
 }

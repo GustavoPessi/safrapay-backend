@@ -20,6 +20,8 @@ public class AnotacaoMaquinaSyncResponse {
     private String concluidoEm;
     private String concluidoPorNome;
     private String criadoPorNome;
+    /** Quando foi criada no servidor (instante UTC ISO, com hora). 08/10/2026. */
+    private String criadoEm;
 
     public static AnotacaoMaquinaSyncResponse de(AnotacaoMaquina a) {
         AnotacaoMaquinaSyncResponse r = new AnotacaoMaquinaSyncResponse();
@@ -35,6 +37,7 @@ public class AnotacaoMaquinaSyncResponse {
         r.concluidoEm = DataSyncUtil.formatar(a.getConcluidoEm());
         r.concluidoPorNome = a.getConcluidoPor() == null ? null : a.getConcluidoPor().getNome();
         r.criadoPorNome = a.getCriadoPor() == null ? null : a.getCriadoPor().getNome();
+        r.criadoEm = DataSyncUtil.formatar(a.getCriadoEm());
         return r;
     }
 
@@ -50,4 +53,5 @@ public class AnotacaoMaquinaSyncResponse {
     public String getConcluidoEm() { return concluidoEm; }
     public String getConcluidoPorNome() { return concluidoPorNome; }
     public String getCriadoPorNome() { return criadoPorNome; }
+    public String getCriadoEm() { return criadoEm; }
 }
