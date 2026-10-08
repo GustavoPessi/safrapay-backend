@@ -12,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.access.AccessDeniedException;
@@ -120,7 +121,9 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(e -> e.accessDeniedHandler(SecurityConfig::acessoNegado))
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                // Sync só com os dados da fazenda certa no aparelho (ver FazendaSyncFilter).
+                .addFilterAfter(new FazendaSyncFilter(), AuthorizationFilter.class);
 
         return http.build();
     }
