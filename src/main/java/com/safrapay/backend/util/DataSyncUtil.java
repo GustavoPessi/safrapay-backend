@@ -24,4 +24,19 @@ public final class DataSyncUtil {
     public static String formatar(Instant instante) {
         return instante == null ? null : FORMATO.format(instante);
     }
+
+    /**
+     * Limite do pull a partir do marcador "desde" que o app manda (08/10/2026).
+     *
+     * O banco guarda atualizado_em com microssegundos, mas o app recebe (e devolve
+     * como "desde") só milissegundos. Com "atualizadoEm > desde", o último item de
+     * cada entidade (ex.: 12:12:37.399512 > 12:12:37.399) voltava em TODO pull, e o
+     * app regravava esse item a cada sincronização — com a sincronização automática
+     * isso virou um laço de pulls a cada poucos segundos. Agora o pull traz só o que
+     * mudou a partir do milissegundo seguinte ao marcador: devolve desde + 999 µs
+     * para usar com "...AtualizadoEmAfter(...)" (equivale a ">= desde + 1 ms").
+     */
+    public static Instant depoisDoMarcador(String desde) {
+        return Instant.parse(desde).plusNanos(999_000);
+    }
 }

@@ -1,5 +1,6 @@
 package com.safrapay.backend.propriedade;
 
+import com.safrapay.backend.util.DataSyncUtil;
 import com.safrapay.backend.entity.Propriedade;
 import com.safrapay.backend.entity.Usuario;
 import com.safrapay.backend.propriedade.dto.PropriedadeRequest;
@@ -143,7 +144,7 @@ public class PropriedadeService {
         } else {
             Instant instanteDesde;
             try {
-                instanteDesde = Instant.parse(desde);
+                instanteDesde = DataSyncUtil.depoisDoMarcador(desde);
             } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parametro 'desde' invalido");
             }

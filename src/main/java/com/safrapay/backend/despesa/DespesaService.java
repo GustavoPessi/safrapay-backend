@@ -1,5 +1,6 @@
 package com.safrapay.backend.despesa;
 
+import com.safrapay.backend.util.DataSyncUtil;
 import com.safrapay.backend.despesa.dto.DespesaRequest;
 import com.safrapay.backend.despesa.dto.DespesaResponse;
 import com.safrapay.backend.despesa.dto.DespesaSyncRequest;
@@ -171,7 +172,7 @@ public class DespesaService {
         } else {
             Instant instanteDesde;
             try {
-                instanteDesde = Instant.parse(desde);
+                instanteDesde = DataSyncUtil.depoisDoMarcador(desde);
             } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parametro 'desde' invalido");
             }
