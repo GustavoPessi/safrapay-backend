@@ -1,5 +1,6 @@
 package com.safrapay.backend.maquina;
 
+import com.safrapay.backend.util.DataSyncUtil;
 import com.safrapay.backend.entity.Maquina;
 import com.safrapay.backend.entity.Usuario;
 import com.safrapay.backend.maquina.dto.MaquinaRequest;
@@ -133,7 +134,7 @@ public class MaquinaService {
         } else {
             Instant instanteDesde;
             try {
-                instanteDesde = Instant.parse(desde);
+                instanteDesde = DataSyncUtil.depoisDoMarcador(desde);
             } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parametro 'desde' invalido");
             }

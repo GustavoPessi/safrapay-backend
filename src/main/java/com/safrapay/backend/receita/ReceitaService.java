@@ -1,5 +1,6 @@
 package com.safrapay.backend.receita;
 
+import com.safrapay.backend.util.DataSyncUtil;
 import com.safrapay.backend.entity.Receita;
 import com.safrapay.backend.entity.Safra;
 import com.safrapay.backend.entity.Usuario;
@@ -132,7 +133,7 @@ public class ReceitaService {
         } else {
             Instant instanteDesde;
             try {
-                instanteDesde = Instant.parse(desde);
+                instanteDesde = DataSyncUtil.depoisDoMarcador(desde);
             } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parametro 'desde' invalido");
             }

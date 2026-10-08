@@ -1,5 +1,6 @@
 package com.safrapay.backend.anotacaomaquina;
 
+import com.safrapay.backend.util.DataSyncUtil;
 import com.safrapay.backend.anotacaomaquina.dto.AnotacaoMaquinaRequest;
 import com.safrapay.backend.anotacaomaquina.dto.AnotacaoMaquinaResponse;
 import com.safrapay.backend.anotacaomaquina.dto.AnotacaoMaquinaSyncRequest;
@@ -141,7 +142,7 @@ public class AnotacaoMaquinaService {
         } else {
             Instant instanteDesde;
             try {
-                instanteDesde = Instant.parse(desde);
+                instanteDesde = DataSyncUtil.depoisDoMarcador(desde);
             } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parametro 'desde' invalido");
             }
