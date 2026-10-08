@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Getter
@@ -40,4 +41,12 @@ public class Safra extends BaseSyncEntity {
 
     @Column(name = "data_fim")
     private LocalDate dataFim;
+
+    /**
+     * Exclusão sincronizada (V6, 08/10/2026): preenchido quando o item foi excluído (no app
+     * ou em cascata no servidor). O item some das listas e do pull normal e vira um aviso de
+     * exclusão em GET /api/exclusoes/sync, pros outros aparelhos apagarem também.
+     */
+    @Column(name = "excluido_em")
+    private Instant excluidoEm;
 }

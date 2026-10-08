@@ -160,12 +160,14 @@ public class ColaboradorService {
     private AnotacaoMaquina buscarTarefa(String uuid) {
         Usuario dono = SecurityUtils.contaDados();
         return anotacaoRepository.findByUuidAndMaquina_Usuario_Id(uuid, dono.getId())
+                .filter(a -> a.getExcluidoEm() == null && a.getMaquina().getExcluidoEm() == null)
                 .filter(this::visivel)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
     }
 
     private Maquina buscarMaquina(String uuid, Usuario dono) {
         return maquinaRepository.findByUuidAndUsuarioId(uuid, dono.getId())
+                .filter(m -> m.getExcluidoEm() == null)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Máquina não encontrada."));
     }
 

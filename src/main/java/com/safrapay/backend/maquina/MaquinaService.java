@@ -90,7 +90,9 @@ public class MaquinaService {
     /** Usado pela sincronizacao de AnotacaoMaquina pra resolver a maquina-pai. */
     public Maquina buscarEntidadePorUuid(String uuid) {
         Usuario usuario = SecurityUtils.contaDados();
-        return maquinaRepository.findByUuidAndUsuarioId(uuid, usuario.getId()).orElse(null);
+        return maquinaRepository.findByUuidAndUsuarioId(uuid, usuario.getId())
+                .filter(x -> x.getExcluidoEm() == null) // pai excluído = como se não existisse
+                .orElse(null);
     }
 
     @Transactional
@@ -110,6 +112,8 @@ public class MaquinaService {
             }
 
             Maquina m = maquinaRepository.findByUuidAndUsuarioId(item.getUuid(), usuario.getId()).orElse(null);
+            // Excluído (V6): a exclusão vence; não ressuscita nem devolve o item.
+            if (m != null && m.getExcluidoEm() != null) continue;
             if (m == null) {
                 m = new Maquina();
                 m.setUuid(item.getUuid());

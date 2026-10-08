@@ -80,7 +80,9 @@ public class TalhaoService {
     // Mesmo padrao de PropriedadeService.buscarEntidadePorUuid.
     public Talhao buscarEntidadePorUuid(String uuid) {
         Usuario usuario = SecurityUtils.contaDados();
-        return talhaoRepository.findByUuidAndPropriedade_Usuario_Id(uuid, usuario.getId()).orElse(null);
+        return talhaoRepository.findByUuidAndPropriedade_Usuario_Id(uuid, usuario.getId())
+                .filter(x -> x.getExcluidoEm() == null) // pai excluído = como se não existisse
+                .orElse(null);
     }
 
     private void aplicar(Talhao t, TalhaoRequest request) {
@@ -132,6 +134,8 @@ public class TalhaoService {
             }
 
             Talhao t = talhaoRepository.findByUuidAndPropriedade_Usuario_Id(item.getUuid(), usuario.getId()).orElse(null);
+            // Excluído (V6): a exclusão vence; não ressuscita nem devolve o item.
+            if (t != null && t.getExcluidoEm() != null) continue;
             if (t == null) {
                 t = new Talhao();
                 t.setUuid(item.getUuid());

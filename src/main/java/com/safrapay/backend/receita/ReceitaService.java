@@ -110,6 +110,8 @@ public class ReceitaService {
             if (safra == null) continue; // safra-pai ainda nao sincronizou
 
             Receita r = receitaRepository.findByUuidAndSafra_Talhao_Propriedade_Usuario_Id(item.getUuid(), usuario.getId()).orElse(null);
+            // Excluído (V6): a exclusão vence; não ressuscita nem devolve o item.
+            if (r != null && r.getExcluidoEm() != null) continue;
             if (r == null) {
                 r = new Receita();
                 r.setUuid(item.getUuid());

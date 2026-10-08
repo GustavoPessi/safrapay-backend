@@ -77,7 +77,9 @@ public class SafraService {
     // TalhaoService.buscarEntidadePorUuid.
     public Safra buscarEntidadePorUuid(String uuid) {
         Usuario usuario = SecurityUtils.contaDados();
-        return safraRepository.findByUuidAndTalhao_Propriedade_Usuario_Id(uuid, usuario.getId()).orElse(null);
+        return safraRepository.findByUuidAndTalhao_Propriedade_Usuario_Id(uuid, usuario.getId())
+                .filter(x -> x.getExcluidoEm() == null) // pai excluído = como se não existisse
+                .orElse(null);
     }
 
     private void aplicar(Safra s, SafraRequest request) {
@@ -124,6 +126,8 @@ public class SafraService {
             }
 
             Safra s = safraRepository.findByUuidAndTalhao_Propriedade_Usuario_Id(item.getUuid(), usuario.getId()).orElse(null);
+            // Excluído (V6): a exclusão vence; não ressuscita nem devolve o item.
+            if (s != null && s.getExcluidoEm() != null) continue;
             if (s == null) {
                 s = new Safra();
                 s.setUuid(item.getUuid());

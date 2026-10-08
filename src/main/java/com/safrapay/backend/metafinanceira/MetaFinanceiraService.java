@@ -107,6 +107,8 @@ public class MetaFinanceiraService {
             if (safra == null) continue; // safra-pai ainda nao sincronizou
 
             MetaFinanceira m = repository.findByUuidAndSafra_Talhao_Propriedade_Usuario_Id(item.getUuid(), usuario.getId()).orElse(null);
+            // Excluído (V6): a exclusão vence; não ressuscita nem devolve o item.
+            if (m != null && m.getExcluidoEm() != null) continue;
             if (m == null) {
                 m = new MetaFinanceira();
                 m.setUuid(item.getUuid());
