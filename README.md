@@ -1,4 +1,4 @@
-# 🌱 SafraPay — Backend
+# SafraPay — Backend
 
 API REST do SafraPay, app de gestão financeira rural (TCC de Ciência da Computação na UNESC, 2026). Atende o [app Android](https://github.com/GustavoPessi/safrapay-android) e está em produção na AWS.
 
