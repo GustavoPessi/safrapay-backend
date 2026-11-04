@@ -110,6 +110,7 @@ public class SecurityConfig {
                                 "/api/auth/redefinir-senha",
                                 "/redefinir-senha.html",
                                 "/confirmar-email.html",
+                                "/admin.html",
                                 "/error"
                         ).permitAll()
                         // /api/auth/alterar-senha fica de fora da lista acima de proposito:
@@ -117,6 +118,9 @@ public class SecurityConfig {
                         // Multiusuario (06/10/2026): o COLABORADOR so acessa estas rotas; o resto
                         // (dados da fazenda, sync, chat de IA) e so de DONO e GERENTE.
                         .requestMatchers(ROTAS_COLABORADOR).authenticated()
+                        // Admin (04/11/2026): qualquer papel autenticado chega ao controller,
+                        // que confere o e-mail em ADMIN_EMAILS e responde 404 pra quem nao e admin.
+                        .requestMatchers("/api/admin/**").authenticated()
                         .anyRequest().access(SecurityConfig::naoColaborador)
                 )
                 .exceptionHandling(e -> e.accessDeniedHandler(SecurityConfig::acessoNegado))

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin — SafraPay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  Pagina de administracao (04/11/2026). Login com a mesma conta do app; so
+  contas listadas em ADMIN_EMAILS (.env da EC2) veem os dados. O token fica so
+  na memoria da pagina: recarregar = entrar de novo. "Sair" revoga a sessao.
+-->
+<style>
+  :root {
+    --primary: #2E7D32;
+    --primary-dark: #1B5E20;
+    --bg: #F4F7F2;
+    --card: #FFFFFF;
+    --text: #1A241C;
+    --muted: #68766C;
+    --border: #E3EAE2;
+    --error: #E24C4C;
+    --green-50: #E8F5E9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+  }
+  header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header .brand { font-weight: 700; font-size: 18px; letter-spacing: -0.02em; }
+  header .tag { font-size: 12px; background: rgba(255,255,255,.18); padding: 3px 8px; border-radius: 999px; }
+  header .spacer { flex: 1; }
+  header button {
+    background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.5);
+    border-radius: 10px; padding: 7px 14px; font: inherit; cursor: pointer;
+  }
+  main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(27, 94, 32, 0.08);
+  }
+  #login { max-width: 380px; margin: 48px auto 0; padding: 28px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  p.sub { color: var(--muted); margin: 0 0 20px; line-height: 1.5; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  input {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px;
+    font: inherit; font-size: 15px; margin-bottom: 14px; background: #fff; color: var(--text);
+  }
+  input:focus { outline: none; border-color: var(--primary); }
+  button.submit {
+    width: 100%; padding: 13px; border: 0; border-radius: 12px; background: var(--primary);
+    color: #fff; font: inherit; font-weight: 600; font-size: 15px; cursor: pointer;
+  }
+  button.submit:disabled { opacity: .6; cursor: default; }
+  .msg { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #FCEDED; color: var(--error); display: none; line-height: 1.5; }
+  .msg.show { display: block; }
+  #painel { display: none; }
+  .resumo { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .resumo .card { padding: 14px 18px; min-width: 150px; }
+  .resumo .num { font-size: 24px; font-weight: 700; }
+  .resumo .rot { color: var(--muted); font-size: 12px; }
+  .barra { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .barra input { margin: 0; max-width: 320px; }
+  .barra .info { color: var(--muted); font-size: 12px; }
+  .barra button {
+    border: 1px solid var(--border); background: #fff; border-radius: 10px; padding: 9px 14px;
+    font: inherit; cursor: pointer; color: var(--text);
+  }
+  .tabela { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; background: #FAFCF9; position: sticky; top: 0; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  th.n { text-align: right; }
+  tr:last-child td { border-bottom: 0; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .pill.ok { background: var(--green-50); color: var(--primary-dark); }
+  .pill.nao { background: #FFF4E5; color: #9A5B00; }
+  .pill.papel { background: #EEF1F6; color: #3B4A63; }
+  .muted { color: var(--muted); }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121613; --card: #1B211C; --text: #E7EEE8; --muted: #9AA79D; --border: #2C352E; --green-50: #1F3322; }
+    input, .barra button { background: #151A16; }
+    th { background: #1F2620; }
+    .pill.papel { background: #263040; color: #C9D3E3; }
+    .pill.nao { background: #3A2C14; color: #F0C27A; }
+    .msg { background: #3A1D1D; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">🌱 SafraPay</span><span class="tag">admin</span>
+  <span class="spacer"></span>
+  <button id="btnSair" type="button" hidden>Sair</button>
+</header>
+<main>
+  <form id="login" class="card" autocomplete="on">
+    <h1>Entrar</h1>
+    <p class="sub">Use a conta do app. Só contas de administrador veem os dados.</p>
+    <label for="email">E-mail</label>
+    <input id="email" type="email" autocomplete="username" required>
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" autocomplete="current-password" required>
+    <button class="submit" id="btnEntrar" type="submit">Entrar</button>
+    <div id="msg" class="msg"></div>
+  </form>
+
+  <section id="painel">
+    <div class="resumo">
+      <div class="card"><div class="num" id="rTotal">0</div><div class="rot">contas</div></div>
+      <div class="card"><div class="num" id="rVerif">0</div><div class="rot">e-mails confirmados</div></div>
+      <div class="card"><div class="num" id="rAtivos">0</div><div class="rot">acessaram nos últimos 7 dias</div></div>
+      <div class="card"><div class="num" id="rEquipe">0</div><div class="rot">membros de equipe</div></div>
+    </div>
+    <div class="barra">
+      <input id="filtro" type="search" placeholder="Filtrar por nome ou e-mail">
+      <button id="btnAtualizar" type="button">Atualizar</button>
+      <span class="info" id="gerado"></span>
+    </div>
+    <div class="card tabela">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th><th>E-mail</th><th>Confirmação</th><th>Papel</th>
+            <th class="n">Propriedades</th><th class="n">Receitas</th><th class="n">Despesas</th>
+            <th>Cadastro</th><th>Último acesso</th>
+          </tr>
+        </thead>
+        <tbody id="linhas"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  var token = null, refreshToken = null, dados = null;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function erro(texto) { $('msg').textContent = texto; $('msg').className = 'msg show'; }
+
+  function dataHora(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function td(texto, classe) {
+    var c = document.createElement('td');
+    if (classe) c.className = classe;
+    c.textContent = texto;
+    return c;
+  }
+
+  function pill(texto, classe) {
+    var c = document.createElement('td'), s = document.createElement('span');
+    s.className = 'pill ' + classe; s.textContent = texto; c.appendChild(s);
+    return c;
+  }
+
+  function desenhar() {
+    var f = $('filtro').value.trim().toLowerCase(), corpo = $('linhas');
+    corpo.textContent = '';
+    dados.usuarios.filter(function (u) {
+      return !f || (u.nome || '').toLowerCase().indexOf(f) >= 0 || (u.email || '').toLowerCase().indexOf(f) >= 0;
+    }).forEach(function (u) {
+      var tr = document.createElement('tr');
+      tr.appendChild(td(u.nome));
+      tr.appendChild(td(u.email));
+      tr.appendChild(u.emailVerificado ? pill('confirmado', 'ok') : pill('pendente', 'nao'));
+      var papel = u.papel === 'DONO'
+        ? (u.membros > 0 ? 'Dono (' + u.membros + (u.membros === 1 ? ' membro)' : ' membros)') : 'Dono')
+        : (u.papel === 'GERENTE' ? 'Gerente' : 'Colaborador') + ' de ' + u.donoEmail;
+      tr.appendChild(pill(papel, 'papel'));
+      tr.appendChild(td(String(u.propriedades), 'n'));
+      tr.appendChild(td(String(u.receitas), 'n'));
+      tr.appendChild(td(String(u.despesas), 'n'));
+      tr.appendChild(td(dataHora(u.criadoEm)));
+      tr.appendChild(td(dataHora(u.ultimoAcesso), u.ultimoAcesso ? '' : 'muted'));
+      corpo.appendChild(tr);
+    });
+  }
+
+  function carregar() {
+    return fetch('/api/admin/usuarios', { headers: { Authorization: 'Bearer ' + token } })
+      .then(function (r) {
+        if (r.status === 404) throw new Error('Esta conta não tem acesso de administrador.');
+        if (r.status === 401 || r.status === 403) throw new Error('Sessão expirada. Entre de novo.');
+        if (!r.ok) throw new Error('Erro ' + r.status + ' ao carregar os dados.');
+        return r.json();
+      })
+      .then(function (d) {
+        dados = d;
+        var semana = Date.now() - 7 * 24 * 3600 * 1000;
+        $('rTotal').textContent = d.total;
+        $('rVerif').textContent = d.emailsVerificados;
+        $('rAtivos').textContent = d.usuarios.filter(function (u) { return u.ultimoAcesso && Date.parse(u.ultimoAcesso) >= semana; }).length;
+        $('rEquipe').textContent = d.usuarios.filter(function (u) { return u.papel !== 'DONO'; }).length;
+        $('gerado').textContent = 'Atualizado em ' + dataHora(d.geradoEm);
+        $('login').style.display = 'none';
+        $('painel').style.display = 'block';
+        $('btnSair').hidden = false;
+        desenhar();
+      });
+  }
+
+  function sair() {
+    if (refreshToken) {
+      fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: refreshToken }) }).catch(function () {});
+    }
+    token = refreshToken = dados = null;
+    $('painel').style.display = 'none';
+    $('login').style.display = 'block';
+    $('btnSair').hidden = true;
+    $('senha').value = '';
+  }
+
+  $('login').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('msg').className = 'msg';
+    $('btnEntrar').disabled = true;
+    fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: $('email').value.trim(), senha: $('senha').value })
+    })
+      .then(function (r) {
+        if (r.status === 401) throw new Error('E-mail ou senha incorretos.');
+        if (!r.ok) throw new Error('Não foi possível entrar (erro ' + r.status + ').');
+        return r.json();
+      })
+      .then(function (d) {
+        token = d.token; refreshToken = d.refreshToken;
+        return carregar().catch(function (err) { sair(); throw err; });
+      })
+      .catch(function (err) { erro(err.message); })
+      .then(function () { $('btnEntrar').disabled = false; });
+  });
+
+  $('btnSair').addEventListener('click', sair);
+  $('btnAtualizar').addEventListener('click', function () { carregar().catch(function (err) { sair(); erro(err.message); }); });
+  $('filtro').addEventListener('input', function () { if (dados) desenhar(); });
+})();
+</script>
+</body>
+</html>
