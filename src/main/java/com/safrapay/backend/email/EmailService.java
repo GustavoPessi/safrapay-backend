@@ -4,13 +4,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.Body;
 import software.amazon.awssdk.services.ses.model.Content;
 import software.amazon.awssdk.services.ses.model.Destination;
 import software.amazon.awssdk.services.ses.model.Message;
 import software.amazon.awssdk.services.ses.model.SendEmailRequest;
-import software.amazon.awssdk.services.ses.model.SesException;
 
 /**
  * Envio de e-mails transacionais via Amazon SES.
@@ -122,11 +122,12 @@ public class EmailService {
                             .build())
                     .build();
             clienteSes.sendEmail(request);
-        } catch (SesException e) {
+        } catch (SdkException e) {
             // Nao deixamos falha de e-mail derrubar o fluxo de cadastro/reset -
-            // so registramos no log para investigar depois.
-            log.error("Falha ao enviar e-mail via SES para {}: {}", destinatario, e.awsErrorDetails() != null
-                    ? e.awsErrorDetails().errorMessage() : e.getMessage());
+            // so registramos no log para investigar depois. SdkException cobre
+            // erro do SES (SesException) e tambem falta de credencial/rede
+            // (SdkClientException), como ao rodar localmente sem AWS configurada.
+            log.error("Falha ao enviar e-mail via SES para {}: {}", destinatario, e.getMessage());
         }
     }
 }
