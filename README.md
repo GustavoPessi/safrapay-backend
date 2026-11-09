@@ -214,4 +214,4 @@ scripts/teste-multiusuario.sh          teste do uso em equipe
 
 ## Autor
 
-**Gustavo Borges Pessi** · Ciência da Computação, UNESC, 2026 · [LinkedIn](https://www.linkedin.com/in/gustavo-pessi-b8a09b368/) · [GitHub](https://github.com/GustavoPessi)
+**Gustavo Borges Pessi** · Ciência da Computação, UNESC, 2026 · [LinkedIn](https://www.linkedin.com/in/gustavopessi/) · [GitHub](https://github.com/GustavoPessi)
