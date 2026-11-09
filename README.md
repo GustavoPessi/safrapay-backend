@@ -212,6 +212,6 @@ scripts/teste-multiusuario.sh          teste do uso em equipe
 - Nomes que vão para o JSON ou para o banco não se renomeiam por padronização, porque são contrato com o app e com o schema.
 - Atributos sempre `private` e objetos de valor imutáveis como `record`.
 
-## 11. Autor
+## Autor
 
-**Gustavo Borges Pessi** · [LinkedIn](https://www.linkedin.com/in/gustavo-pessi-b8a09b368/) · [GitHub](https://github.com/GustavoPessi)
+**Gustavo Borges Pessi** · Ciência da Computação, UNESC, 2026 · [LinkedIn](https://www.linkedin.com/in/gustavo-pessi-b8a09b368/) · [GitHub](https://github.com/GustavoPessi)
