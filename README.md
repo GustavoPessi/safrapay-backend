@@ -8,7 +8,7 @@ O aplicativo Android fica no repositório [safrapay-android](https://github.com/
 
 ## 1. Para avaliar não é preciso rodar o servidor
 
-O backend já está em produção na AWS, no endereço **https://api.safra-pay.com**, e é esse servidor que o APK de demonstração usa. Para testar o sistema basta instalar o APK e entrar com a conta de demonstração (os dados de acesso foram enviados aos avaliadores junto com a entrega, fora do repositório).
+O backend já está em produção na AWS, no endereço **https://api.safra-pay.com**, e é esse servidor que o APK usa. Para testar o sistema basta instalar o APK e **criar a própria conta pelo aplicativo** (passo a passo no README do [safrapay-android](https://github.com/GustavoPessi/safrapay-android)). Não há conta de demonstração: o próprio cadastro já testa o servidor. Os e-mails de confirmação do cadastro e de "Esqueci minha senha" são enviados pelo servidor a partir de `noreply@safra-pay.com` (confira também a caixa de spam).
 
 Verificações rápidas pelo navegador:
 
